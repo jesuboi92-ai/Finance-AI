@@ -7,31 +7,71 @@ import streamlit as st
 from openai import OpenAI
 
 st.set_page_config(
-    page_title="Talous-AI & Vaurastumisassistentti (Ultimate)", page_icon="📈", layout="centered"
+    page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
 
-st.title("📈 Talous-AI & Vaurastumisassistentti (Ultimate Pro)")
+# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA (Käyttäjät eivät näe sitä) ---
+# Streamlit Cloudissa tämä haetaan st.secrets-muistista. 
+# Jos suoritat paikallisesti, voit käyttää fallback-testiavainta tai os.getenv.
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except Exception:
+    api_key = ""  # Jos avain puuttuu asetuksista
+
+st.title("📈 Talous-AI & Vaurastumisassistentti (Free & Pro)")
 st.write(
-    "Kaikki toiminnot samassa: Palkkalaskelman PDF-luku, tulot ja menot, sijoituslaskurit & kriittinen AI, "
-    "Smart Budget, älykäs kuvaskanneri, perusruokabudjetti sekä tarkka tuote- ja kauppakohtainen hintavertailija."
+    "Älykäs talousassistentti arkeen ja sijoittamiseen. "
+    "Käytä ilmaisia perustoimintoja tai päivitä Pro-versioon!"
 )
 
-# Sivupalkki asetuksille
-st.sidebar.header("⚙️ Asetukset & Versio")
-app_mode = st.sidebar.selectbox(
-    "Valitse tila", ["Ilmaisversio (Free)", "Pro-versio (Testaa)"]
-)
-api_key = st.sidebar.text_input("Syötä OpenAI API-avain", type="password")
+# --- SIVUPALKKI: TILAUS & PRO-AKTIVOINTI ---
+st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
 
-# Pääsovelluksen kaikki 6 välilehteä
+# Tarkistetaan onko käyttäjä aktivoinut Pro-tilan sessioon
+if "is_pro" not in st.session_state:
+    st.session_state.is_pro = False
+
+if st.session_state.is_pro:
+    st.sidebar.success("✅ Pro-tila aktivoituna tässä istunnossa!")
+    if st.sidebar.button("Kirjaudu ulos Pro-tilasta"):
+        st.session_state.is_pro = False
+        st.rerun()
+else:
+    st.sidebar.info("Olet **Ilmaisversiossa**.")
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🚀 Päivitä Pro-versioon")
+    st.sidebar.markdown(
+        "Hanki kaikki tekoälyominaisuudet, PDF-palkkalaskelman luku, kuvaskanneri ja älykäs hintavertailu!"
+    )
+    st.sidebar.markdown("**Hinnat:**")
+    st.sidebar.markdown("- 🌟 **4,90 € / kk**")
+    st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
+    
+    with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi"):
+        entered_code = st.text_input("Syötä lisenssikoodi / PIN", type="password")
+        if st.button("Aktivoi Pro"):
+            # Tähän voit määritellä omat toimivat koodisi tai tarkistuksen
+            if entered_code == "pro-salaisuus-2026": 
+                st.session_state.is_pro = True
+                st.success("Pro aktivoitu onnistuneesti!")
+                st.rerun()
+            else:
+                st.error("Virheellinen koodi.")
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään (esim. MobilePay / verkkokauppalinkki).*")
+
+is_pro_unlocked = st.session_state.is_pro
+
+# Pääsovelluksen välilehdet
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
-        "📝 Tulot, PDF & Menot", 
-        "🎯 Sijoituspuskuri & AI-analyysi", 
+        "📝 Tulot & Menot", 
+        "🎯 Sijoituspuskuri", 
         "💡 Smart Budget", 
-        "🏷️ Hinnat & Kuittiskanneri",
+        "🏷️ Omat Hinnat",
         "🛒 Perusruokabudjetti",
-        "🍳 Ruokalista & Kauppojen Hintavertailu"
+        "🍳 Pro: Ruokalista & Hintavertailu"
     ]
 )
 
@@ -47,43 +87,22 @@ if "custom_products" not in st.session_state:
         ]
     )
 
-if "uploaded_image_records" not in st.session_state:
-    st.session_state.uploaded_image_records = []
 
-
-def compress_image(image_bytes, max_size=1600):
-    try:
-        img = Image.open(io.BytesIO(image_bytes))
-        img.thumbnail((max_size, max_size))
-        buffered = io.BytesIO()
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        img.save(buffered, format="JPEG", quality=90)
-        return buffered.getvalue()
-    except Exception:
-        return image_bytes
-
-
-def encode_image(image_bytes):
-    compressed_bytes = compress_image(image_bytes)
-    return base64.b64encode(compressed_bytes).decode("utf-8")
-
-
-# --- TAB 1: TULOT, PDF & MENOT ---
+# --- TAB 1: TULOT & MENOT ---
 with tab1:
-    st.subheader("1. Tulot (myös PDF-palkkalaskelman luku) & Manuaaliset menot")
+    st.subheader("1. Tulot & Manuaaliset menot")
     
-    st.markdown("### 📄 Tuo tulotiedot suoraan PDF-palkkalaskelmasta")
-    uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"], key="pdf_uploader_main")
-    
-    if uploaded_pdf is not None:
-        try:
-            reader = pypdf.PdfReader(uploaded_pdf)
-            pdf_text = ""
-            for page in reader.pages:
-                pdf_text += page.extract_text() or ""
-            
-            if api_key and pdf_text.strip():
+    if is_pro_unlocked:
+        st.markdown("### 📄 [PRO] Tuo tulotiedot suoraan PDF-palkkalaskelmasta")
+        uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"], key="pdf_uploader_main")
+        
+        if uploaded_pdf is not None and api_key:
+            try:
+                reader = pypdf.PdfReader(uploaded_pdf)
+                pdf_text = ""
+                for page in reader.pages:
+                    pdf_text += page.extract_text() or ""
+                
                 with st.spinner("Tekoäly lukee palkkatietoja PDF:stä..."):
                     client = OpenAI(api_key=api_key)
                     prompt = (
@@ -93,10 +112,10 @@ with tab1:
                     )
                     resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
                     st.info(f"AI:n löytämät tiedot tekstistä: {resp.choices[0].message.content}")
-            else:
-                st.write("PDF luettu (syötä API-avain sivupalkkiin, jos haluat tekoälyn jäsentävän summan automaattisesti).")
-        except Exception as e:
-            st.error(f"Virhe PDF-tiedoston lukemisessa: {e}")
+            except Exception as e:
+                st.error(f"Virhe tiedoston käsittelyssä: {e}")
+    else:
+        st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk). Päivitä Pro-versioon sivupalkista!")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -114,210 +133,83 @@ with tab1:
     st.info(f"📊 Yhteenveto: Tulot {monthly_income} € | Menot **{total_expenses} €** | Jäljelle jää: **{net_left} €**")
 
 
-# --- TAB 2: SIJOITUSPUSKURI & AI-ANALYYSI ---
+# --- TAB 2: SIJOITUSPUSKURI ---
 with tab2:
-    st.subheader("2. Sijoittamiskeskeinen optimointi, Markkinatuoton laskenta & Kriittinen AI-analyysi")
+    st.subheader("2. Sijoittamiskeskeinen optimointi & Korkoa korolle -laskuri")
     current_balance = st.number_input("Tilillä oleva nykyinen käyttöraha yhteensä (€)", value=3500.0, key="curr_bal")
     buffer_need = st.number_input("Turvapuskurin tavoite (€)", value=2000.0, key="buff_need")
 
     if st.button("Laske sijoitettava ylijäämä"):
         excess_cash = current_balance - buffer_need
         if excess_cash > 0:
-            st.success(
-                f"💡 **Sijoituspotentiaali:** Tililläsi on noin **{excess_cash:.0f} euroa** "
-                "ylimääräistä puskurin ylittävää rahaa."
-            )
+            st.success(f"💡 **Sijoituspotentiaali:** Noin **{excess_cash:.0f} euroa** puskurin ylittävää rahaa.")
         else:
             st.info("Keskity ensin saavuttamaan turvapuskuritavoite.")
 
     st.markdown("---")
-    st.markdown("### 📈 Markkinatuotto- ja Korkoa korolle -laskuri")
-    
     col_inv1, col_inv2 = st.columns(2)
     with col_inv1:
         alkup_sijoitus = st.number_input("Alkusijoitus (€)", value=1000.0, step=100.0)
-        kk_sijoitus = st.number_input("Kuukausisäästö / -sijoitus (€)", value=150.0, step=25.0)
+        kk_sijoitus = st.number_input("Kuukausisäästö (€)", value=150.0, step=25.0)
     with col_inv2:
         sijoitus_aika_vuotta = st.slider("Sijoitusaika (vuotta)", 1, 40, 10)
         arvioitu_tuotto_prosentti = st.slider("Arvioitu vuosituotto (%)", 0.0, 20.0, 7.0, 0.5)
 
     kokonaissumma = alkup_sijoitus
     kuukausi_tuotto = arvioitu_tuotto_prosentti / 100 / 12
-    kuukausia = sijoitus_aika_vuotta * 12
-
-    sijoitettu_paoma_yhteensa = alkup_sijoitus
-    for _ in range(kuukausia):
+    for _ in range(sijoitus_aika_vuotta * 12):
         kokonaissumma = (kokonaissumma + kk_sijoitus) * (1 + kuukausi_tuotto)
-        sijoitettu_paoma_yhteensa += kk_sijoitus
+    
+    st.info(f"📊 **Salkun arvo {sijoitus_aika_vuotta} v. jälkeen:** **{kokonaissumma:,.0f} €**")
 
-    tuotto_yhteensa = kokonaissumma - sijoitettu_paoma_yhteensa
-
-    st.info(
-        f"📊 **Laskelman tulos ({sijoitus_aika_vuotta} vuoden jälkeen):**\n\n"
-        f"- Sijoitettu pääoma yhteensä: **{sijoitettu_paoma_yhteensa:,.0f} €**\n"
-        f"- Arvioitu voitto / tuotto: **{tuotto_yhteensa:,.0f} €**\n"
-        f"- **Salkun arvo yhteensä:** **{kokonaissumma:,.0f} €**"
-    )
-
-    st.markdown("### 🤖 Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
-    sijoitus_kohde_kuvaus = st.text_area(
-        "Kerro lyhyesti mihin aiot sijoittaa (esim. globaalit indeksirahastot, kryptot tai osakkeet):",
-        "Sijoitan kuukausittain maailma-indeksirahastoon ja toivon n. 7% keskimääräistä tuottoa."
-    )
-
-    if st.button("Pyydä kriittinen AI-analyysi sijoituksistasi"):
-        if not api_key:
-            st.warning("Syötä sivupalkkiin OpenAI API-avain.")
-        else:
-            client = OpenAI(api_key=api_key)
-            prompt = (
-                f"Olet äärimmäisen kriittinen ja kokenut sijoitusasiantuntija. "
-                f"Analysoi seuraavaa sijoitussuunnitelmaa:\n"
-                f"- Alkusijoitus: {alkup_sijoitus} €\n"
-                f"- Kuukausisijoitus: {kk_sijoitus} €\n"
-                f"- Sijoitusaika: {sijoitus_aika_vuotta} vuotta\n"
-                f"- Oletettu vuosituotto: {arvioitu_tuotto_prosentti} %\n"
-                f"- Strategia: {sijoitus_kohde_kuvaus}\n\n"
-                "Ole rehellinen riskeistä (inflaatio, markkinoiden laskukaudet, verotus)."
-            )
-            with st.spinner("Tekoäly analysoi sijoituksiasi kriittisesti..."):
-                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+    if is_pro_unlocked:
+        st.markdown("### 🤖 [PRO] Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
+        sijoitus_kohde_kuvaus = st.text_area("Strategia:", "Sijoitan globaaliin indeksirahastoon.")
+        if st.button("Pyydä Pro AI-analyysi"):
+            if api_key:
+                client = OpenAI(api_key=api_key)
+                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
+            else:
+                st.warning("Järjestelmän API-avain puuttuu.")
+    else:
+        st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
 
 
 # --- TAB 3: SMART BUDGET ---
 with tab3:
     st.subheader("3. Smart Budget & Viikkoseuranta")
-    weekly_food_target = st.number_input("Asetettu viikoittainen ruokabudjetti (€)", value=80.0)
-    actual_food_spent = st.number_input("Tällä viikolla ruokaan käytetty (€)", value=65.0)
+    weekly_food_target = st.number_input("Viikoittainen ruokabudjetti (€)", value=80.0)
+    actual_food_spent = st.number_input("Tällä viikolla käytetty (€)", value=65.0)
     
-    if st.button("Hae palaute viikon kulutuksesta"):
-        if not api_key:
-            st.warning("Syötä sivupalkkiin OpenAI API-avain.")
-        else:
-            client = OpenAI(api_key=api_key)
-            prompt = f"Arvioi viikoittaista ruokabudjettia (tavoite: {weekly_food_target} €, toteutunut: {actual_food_spent} €) huumorilla ja anna vinkkejä."
-            resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-            st.markdown(resp.choices[0].message.content)
+    if is_pro_unlocked:
+        if st.button("Hae Pro-palaute viikon kulutuksesta"):
+            if api_key:
+                client = OpenAI(api_key=api_key)
+                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
+                st.markdown(resp.choices[0].message.content)
+            else:
+                st.warning("API-avain puuttuu.")
+    else:
+        st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
 
 
 # --- TAB 4: HINNAT & KUITTISKANNERI ---
 with tab4:
-    st.subheader("🏷️ Omat tuotehinnat, Kaupat & Älykäs Kuvaskanneri")
-    st.write("Lataa kauppojen näyttökuvat tai kuitit. Aiemmin lisätyt kuvat korostetaan punaisella, ja ne voi poistaa rastista.")
-
-    col_c1, col_c2 = st.columns([1, 1])
-
-    with col_c1:
-        st.markdown("### 📸 Monikuva- / Näyttökuvaskanneri")
-        
-        default_store_choice = st.selectbox(
-            "Valitse oletuskauppa (jos kuvasta ei selviä):",
-            ["Päättele kuvasta", "Prisma", "S-Market", "Lidl", "K-Citymarket", "K-Market", "Alepa", "Sale"]
-        )
-
-        uploaded_files = st.file_uploader(
-            "Lataa kauppojen näyttökuvat tai kuitit", 
-            type=["png", "jpg", "jpeg"], 
-            accept_multiple_files=True,
-            key="img_uploader_tab4"
-        )
-
+    st.subheader("🏷️ Omat tuotehinnat & Kuvaskanneri")
+    
+    if is_pro_unlocked:
+        st.markdown("### 📸 [PRO] Älykäs Kuvaskanneri")
+        uploaded_files = st.file_uploader("Lataa kuitteja", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
         if uploaded_files:
-            for uploaded_file in uploaded_files:
-                file_bytes = uploaded_file.read()
-                existing_names = [item["name"] for item in st.session_state.uploaded_image_records]
-                
-                if uploaded_file.name not in existing_names:
-                    st.session_state.uploaded_image_records.append({
-                        "name": uploaded_file.name,
-                        "data": file_bytes,
-                        "type": "image/jpeg",
-                        "already_added": False
-                    })
+            st.success(f"Ladattu {len(uploaded_files)} kuvaa skannattavaksi.")
+    else:
+        st.info("🔒 Kuittien ja näyttökuvien automaattinen tekoälyskanneri on Pro-ominaisuus.")
 
-        if st.session_state.uploaded_image_records:
-            st.markdown("#### Ladatut kuvat & hallinta (Rastita poistaaksesi)")
-            
-            updated_records = []
-            for i, record in enumerate(st.session_state.uploaded_image_records):
-                name_count = sum(1 for r in st.session_state.uploaded_image_records if r["name"] == record["name"])
-                is_marked_red = name_count > 1 or record.get("already_added", False)
-
-                if is_marked_red:
-                    st.markdown(
-                        f"""<div style="border: 2px solid red; background-color: #ffe6e6; padding: 10px; border-radius: 5px; margin-bottom: 5px;">
-                        <span style="color: red; font-weight: bold;">🛑 Jo lisätty / Kaksoiskappale: {record['name']}</span>
-                        </div>""", 
-                        unsafe_allow_html=True
-                    )
-                
-                cols = st.columns([3, 1])
-                with cols[0]:
-                    st.image(record["data"], caption=record["name"], width=150)
-                with cols[1]:
-                    remove_flag = st.checkbox("Poista", key=f"del_img_{i}")
-                
-                if not remove_flag:
-                    updated_records.append(record)
-                else:
-                    st.warning(f"Poistettu kuva: {record['name']}")
-            
-            st.session_state.uploaded_image_records = updated_records
-
-        if st.session_state.uploaded_image_records and st.button("Pura tuotteet, kaupat ja hinnat kuvista"):
-            if not api_key:
-                st.warning("Syötä sivupalkkiin OpenAI API-avain.")
-            else:
-                with st.spinner("Tekoäly analysoi kuvia ja poimii kaupat, tuotteet, pakkauskoot ja hinnat..."):
-                    client = OpenAI(api_key=api_key)
-                    store_inst = f"Käytä oletuskauppana '{default_store_choice}' jos kauppaa ei mainita. " if default_store_choice != "Päättele kuvasta" else "Tunnista aina kauppa suoraan kuvasta. "
-                    
-                    messages_content = [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": (
-                                        f"Olet tarkka hinta- ja kauppatietojen lukija. {store_inst} "
-                                        "Käy läpi jokainen kuva ja poimi tuotteet, pakkauskoot ja hinnat euroina (€). "
-                                        "Palauta tulos selkeänä taulukkona tai listana muodossa:\n"
-                                        "Tuote / Pakkaus | Kauppa | Hinta (€)"
-                                    )
-                                }
-                            ]
-                        }
-                    ]
-
-                    for record in st.session_state.uploaded_image_records:
-                        base64_img = encode_image(record["data"])
-                        messages_content[0]["content"].append({
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_img}"
-                            }
-                        })
-                        record["already_added"] = True
-
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages_content,
-                        max_tokens=1500
-                    )
-
-                    st.success("Kuvat analysoitu onnistuneesti!")
-                    st.markdown("### 🔍 Löydetyt tuotteet, kaupat ja hinnat:")
-                    st.markdown(response.choices[0].message.content)
-
-    with col_c2:
-        st.markdown("### 📋 Omat tallennetut hinnat & kaupat")
-        edited_df = st.data_editor(st.session_state.custom_products, num_rows="dynamic", key="product_editor")
-        
-        if "Poista" in edited_df.columns:
-            st.session_state.custom_products = edited_df[edited_df["Poista"] == False].reset_index(drop=True)
-        else:
-            st.session_state.custom_products = edited_df
+    st.markdown("### 📋 Omat tallennetut hinnat")
+    edited_df = st.data_editor(st.session_state.custom_products, num_rows="dynamic", key="product_editor")
+    if "Poista" in edited_df.columns:
+        st.session_state.custom_products = edited_df[edited_df["Poista"] == False].reset_index(drop=True)
 
 
 # --- TAB 5: PERUSRUOKABUDJETOIJA ---
@@ -325,64 +217,53 @@ with tab5:
     st.subheader("4. Perusruokabudjetti & Kauppavinkit")
     family_size = st.selectbox("Talouden koko", ["1 henkilö", "2 henkilöä", "Perhe"])
     if st.button("Luo perusopas"):
-        if not api_key:
-            st.warning("Syötä sivupalkkiin OpenAI API-avain.")
-        else:
-            client = OpenAI(api_key=api_key)
-            resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Anna budjettivinkit ruokakauppaan taloudelle: {family_size}"}])
-            st.markdown(resp.choices[0].message.content)
+        st.write("Perusvinkki: Suunnittele ruuat etukäteen ja hyödynnä kauppojen omat merkit säästääksesi selvää rahaa!")
 
 
-# --- TAB 6: RUOKALISTA & KAUPPOJEN HINTAVERTAILU ---
+# --- TAB 6: PRO - RUOKALISTA & HINTAVERTAILU ---
 with tab6:
-    st.subheader("🍳 Tarkasti kaloroitu ruokalista & Kauppojen vierekkäinen hintavertailu")
-    st.write("Suunnittele ruokalista tarkalla kaloritavoitteella ja katso **suora tuotekohtainen hintavertailu valituissa kaupoissa sekä loppusummat**.")
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
-        daily_calories = st.number_input("Päivittäinen tarkka kaloritavoite (kcal)", min_value=1200, max_value=5000, value=2000, step=50, key="t6_cal")
-        days_count = st.slider("Suunniteltava ajanjakso (päivää)", min_value=1, max_value=7, value=7, key="t6_days")
-    with col_b:
-        goal_choice = st.selectbox(
-            "Optio / Tavoite", 
-            [
-                "Terveellinen perusruokavalio",
-                "📉 Laihdutus / Painonhallinta (Kalorivaje -300–500 kcal)", 
-                "💪 Lean Bulk (Lihasmassan kasvu +300–500 kcal)",
-                "🔥 Lean Cut (Kiristely)",
-                "🏷️ Tarjousten hyödyntäminen / Halvin mahdollinen",
-                "Proteiinipitoinen / Fitness"
-            ],
-            key="t6_goal"
-        )
-        meals_per_day = st.slider("Aterioiden määrä per päivä", min_value=1, max_value=6, value=3, key="t6_meals")
-
-    allergies_input = st.text_input("Erityisallergiat tai vältettävät aineet", value="", key="t6_allergies")
-    stores_to_compare = st.multiselect("Valitse vähintään 2 kauppaa hintavertailuun vieri viereen", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
-
-    if st.button("Generoi ruokalista ja tarkka kauppakohtainen hintavertailutaulukko"):
-        if not api_key:
-            st.warning("Syötä sivupalkkiin OpenAI API-avain.")
-        elif len(stores_to_compare) < 1:
-            st.warning("Valitse vähintään yksi kauppa vertailuun.")
-        else:
-            client = OpenAI(api_key=api_key)
-            stores_str = ", ".join(stores_to_compare)
-            prompt = (
-                f"Olet tarkka ravitsemus- ja talousasiantuntija. Suunnittele {days_count} päivän ruokalista seuraavilla ehdoilla:\n"
-                f"- Ruokavalio: {diet_choice}\n"
-                f"- TARKKA PÄIVITTÄINEN KALORITAVOITE: Täsmälleen {daily_calories} kcal per päivä (varmista että päivittäiset kalorit vastaavat tätä tarkasti).\n"
-                f"- Tavoite / Optio: {goal_choice}\n"
-                f"- Aterioita per päivä: {meals_per_day}\n"
-                f"- Vältettävät allergiat/aineet: '{allergies_input}'\n\n"
-                f"VAATIMUKSET VASTAUKSELLE:\n"
-                f"1. Esitä päiväkohtainen ruokalista niin, että jokaisen päivän kalorit täsmäävät tavoitteeseen ({daily_calories} kcal).\n"
-                f"2. Luo **tarkka ostoslista**, jossa tuotteiden tarvittava määrä on ilmoitettu selkeästi oikeassa yksikössä (esim. grammoina, kiloina tai kappaleina – älä sekoita 'pakkauskokoja' harhaanjohtavasti irrallisiin tuotteisiin, kuten banaaneihin, vaan ilmoita tarvittava kokonaismäärä esim. 'Banaani: 8 kpl').\n"
-                f"3. Rakenna **Markdown-taulukko**, jossa ovat sarakkeina: [Tuote, Tarvittava määrä, {stores_str} (hinnat kyseisessä kaupoissa ostoskorille)]. "
-                f"Jokaiselle tuotteelle on oltava hinta jokaisessa valitussa kaupassa.\n"
-                f"4. Taulukon **viimeiselle riville** tai aivan taulukon alapuolelle lasket ehdottomasti **YHTEENSÄ (€)** -loppusummat jokaiselle kaupalle erikseen, jotta näkee suoraan mikä kaupoista on halvin."
+    st.subheader("🍳 [PRO] Tarkka ruokalista & Kauppojen vierekkäinen hintavertailu")
+    
+    if is_pro_unlocked:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
+            daily_calories = st.number_input("Tarkka kaloritavoite (kcal)", min_value=1200, max_value=5000, value=2000, step=50, key="t6_cal")
+            days_count = st.slider("Ajanjakso (päivää)", min_value=1, max_value=7, value=7, key="t6_days")
+        with col_b:
+            goal_choice = st.selectbox(
+                "Tavoite", 
+                [
+                    "Terveellinen perusruokavalio",
+                    "📉 Laihdutus / Painonhallinta (Kalorivaje)", 
+                    "💪 Lean Bulk (Lihasmassan kasvu)",
+                    "🔥 Lean Cut (Kiristely)",
+                    "🏷️ Tarjousten hyödyntäminen / Halvin"
+                ],
+                key="t6_goal"
             )
-            with st.spinner("Lasketaan kaloreita ja rakennetaan tuotekohtaista kauppavertailua..."):
-                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-                st.markdown(resp.choices[0].message.content)
+            meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
+
+        allergies_input = st.text_input("Allergiat / Vältettävät aineet", value="", key="t6_allergies")
+        stores_to_compare = st.multiselect("Valitse kaupat vertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
+
+        if st.button("Generoi Pro-ruokalista ja hintavertailutaulukko"):
+            if not api_key:
+                st.warning("OpenAI API-avainta ei ole määritetty palvelimen asetuksiin.")
+            elif len(stores_to_compare) < 1:
+                st.warning("Valitse vähintään yksi kauppa.")
+            else:
+                client = OpenAI(api_key=api_key)
+                stores_str = ", ".join(stores_to_compare)
+                prompt = (
+                    f"Suunnittele {days_count} päivän ruokalista: ruokavalio {diet_choice}, kalorit {daily_calories} kcal/pvä, "
+                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pvä, allergiat: '{allergies_input}'.\n"
+                    f"Luo tarkka ostoslista oikeilla yksiköillä (esim. grammoina tai kappaleina) "
+                    f"sekä Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava määrä, {stores_str}]. "
+                    f"Laske taulukon loppuun YHTEENSÄ (€) -summat jokaiselle kaupalle."
+                )
+                with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
+                    resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+                    st.markdown(resp.choices[0].message.content)
+    else:
+        st.warning("🔒 **Tämä välilehti on lukittu Pro-käyttäjille (4,90 €/kk).** Päivitä Pro-versioon sivupalkin kautta avataksesi edistyneen ruokalistageneraattorin ja hintavertailun!")
