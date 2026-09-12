@@ -10,11 +10,11 @@ st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
 
-# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA (Käyttäjät eivät näe sitä) ---
+# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA TAI SIVUPALKIN KENTÄSTÄ ---
 try:
-    api_key = st.secrets["OPENAI_API_KEY"]
+    default_api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
-    api_key = ""  # Jos avain puuttuu asetuksista
+    default_api_key = ""
 
 st.title("📈 Talous-AI & Vaurastumisassistentti (Free & Pro)")
 st.write(
@@ -24,6 +24,20 @@ st.write(
 
 # --- SIVUPALKKI: TILAUS & PRO-AKTIVOINTI ---
 st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
+
+# API-avaimen syöttö sivupalkkiin, jos sitä ei ole määritetty stremlit secretsiin
+with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
+    user_api_input = st.text_input("Syötä OpenAI API-avain", value="", type="password", key="user_openai_key")
+    if user_api_input:
+        api_key = user_api_input
+        st.success("API-avain tallennettu sessioon!")
+    else:
+        api_key = default_api_key
+
+if not api_key:
+    st.sidebar.warning("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin, jotta tekoälytoiminnot toimivat.")
+
+st.sidebar.markdown("---")
 
 # Tarkistetaan onko käyttäjä aktivoinut Pro-tilan sessioon
 if "is_pro" not in st.session_state:
@@ -46,7 +60,6 @@ else:
     st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
     
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
-        # type="password" piilottaa koodin ja lisää silmä-kuvakkeen tarkistamista varten
         entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", type="password", key="entered_pin")
         if st.button("Aktivoi Pro"):
             if entered_code.strip() == "salasana123": 
@@ -57,7 +70,7 @@ else:
                 st.error("Virheellinen koodi. Kokeile salasana123")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään (esim. MobilePay / verkkokauppalinkki).*")
+    st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään.*")
 
 is_pro_unlocked = st.session_state.is_pro
 
@@ -93,24 +106,27 @@ with tab1:
         st.markdown("### 📄 [PRO] Tuo tulotiedot suoraan PDF-palkkalaskelmasta")
         uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"], key="pdf_uploader_main")
         
-        if uploaded_pdf is not None and api_key:
-            try:
-                reader = pypdf.PdfReader(uploaded_pdf)
-                pdf_text = ""
-                for page in reader.pages:
-                    pdf_text += page.extract_text() or ""
-                
-                with st.spinner("Tekoäly lukee palkkatietoja PDF:stä..."):
-                    client = OpenAI(api_key=api_key)
-                    prompt = (
-                        "Etsi seuraavasta palkkalaskelman tekstistä NETTO-palkka (käteen jäävä summa) "
-                        "sekä BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
-                        f"Teksti:\n{pdf_text[:3000]}"
-                    )
-                    resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-                    st.info(f"AI:n löytämät tiedot tekstistä: {resp.choices[0].message.content}")
-            except Exception as e:
-                st.error(f"Virhe tiedoston käsittelyssä: {e}")
+        if uploaded_pdf is not None:
+            if not api_key:
+                st.warning("Syötä OpenAI API-avain sivupalkkiin ennen tiedoston lukemista.")
+            else:
+                try:
+                    reader = pypdf.PdfReader(uploaded_pdf)
+                    pdf_text = ""
+                    for page in reader.pages:
+                        pdf_text += page.extract_text() or ""
+                    
+                    with st.spinner("Tekoäly lukee palkkatietoja PDF:stä..."):
+                        client = OpenAI(api_key=api_key)
+                        prompt = (
+                            "Etsi seuraavasta palkkalaskelman tekstistä NETTO-palkka (käteen jäävä summa) "
+                            "sekä BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
+                            f"Teksti:\n{pdf_text[:3000]}"
+                        )
+                        resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+                        st.info(f"AI:n löytämät tiedot tekstistä: {resp.choices[0].message.content}")
+                except Exception as e:
+                    st.error(f"Virhe tiedoston käsittelyssä: {e}")
     else:
         st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk). Päivitä Pro-versioon sivupalkista!")
 
@@ -167,7 +183,7 @@ with tab2:
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.warning("Järjestelmän API-avain puuttuu.")
+                st.warning("OpenAI API-avain puuttuu. Syötä se sivupalkkiin.")
     else:
         st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
 
@@ -184,7 +200,7 @@ with tab3:
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.warning("API-avain puuttuu.")
+                st.warning("API-avain puuttuu. Syötä se sivupalkkiin.")
     else:
         st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
 
@@ -205,7 +221,7 @@ with tab4:
     if "Poista" in edited_df.columns:
         st.session_state.custom_products = edited_df[edited_df["Poista"] == False].reset_index(drop=True)
 
-# --- TAB 5: PERUSRUOKABUDJETOIJA (UUDISTETTU & MONIPUOLISEMPI) ---
+# --- TAB 5: PERUSRUOKABUDJETOIJA ---
 with tab5:
     st.subheader("🛒 Arjen Perusruokabudjetti & Älykkäät Säästövinkit")
     st.write("Tarkista suositellut ruokabudjetit ja nappaa parhaat arjen säästökikat käyttöösi ilman lisämaksuja!")
@@ -289,7 +305,7 @@ with tab6:
 
         if st.button("Generoi Pro-ruokalista ja hintavertailutaulukko"):
             if not api_key:
-                st.warning("OpenAI API-avainta ei ole määritetty palvelimen asetuksiin.")
+                st.warning("OpenAI API-avain puuttuu. Syötä se sivupalkin 'OpenAI API-asetukset' -laatikkoon.")
             elif len(stores_to_compare) < 1:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
