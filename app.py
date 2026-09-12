@@ -1,5 +1,5 @@
 import json
-import pandas as pds
+import pandas as pd
 import pypdf
 import requests
 import streamlit as st
@@ -26,13 +26,24 @@ st.sidebar.header("💎 Kayttooikeus & Tilaukset")
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
 
-with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
+# Pakotetaan expander aina auki (expanded=True), jotta avaimen syöttökenttä näkyy varmasti
+with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=True):
     st.markdown("Syota OpenAI:n API-avain tekoalytoimintoja varten.")
     user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
+    
+    # Tarkistetaan avain suoraan ja tallennetaan session_stateen, ettei se katoa
     if user_api_input:
-        api_key = user_api_input.strip()
-    else:
-        api_key = default_api_key.strip()
+        st.session_state.active_api_key = user_api_input.strip()
+    elif "active_api_key" not in st.session_state:
+        st.session_state.active_api_key = default_api_key
+
+api_key = st.session_state.get("active_api_key", "")
+
+# Näytetään pieni merkkivalo sivupalkissa kertomaan onko avain syötetty
+if api_key:
+    st.sidebar.success("✅ API-avain tallennettu muistiin!")
+else:
+    st.sidebar.error("❌ Ei API-avainta syötetty.")
 
 st.sidebar.markdown("---")
 
@@ -67,18 +78,17 @@ else:
 
 is_pro_unlocked = st.session_state.is_pro
 
-# Apufunktio OpenAI-kutsuille requests-kirjaston kautta (välttää ASCII-koodausvirheet)
-def call_openai_api(api_key, prompt_text, model="gpt-3.5-turbo"):
+# Apufunktio OpenAI-kutsuille requests-kirjaston kautta
+def call_openai_api(key, prompt_text, model="gpt-3.5-turbo"):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {key}",
         "Content-Type": "application/json; charset=utf-8"
     }
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt_text}]
     }
-    # Pakotetaan pyyntö ja koodaus UTF-8:ksi
     response = requests.post(url, headers=headers, data=json.dumps(payload, ensure_ascii=False).encode('utf-8'))
     if response.status_code == 200:
         res_json = response.json()
@@ -99,7 +109,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
 )
 
 if "custom_products" not in st.session_state:
-    st.session_state.custom_products = pds.DataFrame(
+    st.session_state.custom_products = pd.DataFrame(
         [
             {"Poista": False, "Tuote / Pakkaus": "Kanafilee (400g)", "Kauppa": "Prisma", "Hinta (€)": 4.50},
             {"Poista": False, "Tuote / Pakkaus": "Maito (1l)", "Kauppa": "S-Market", "Hinta (€)": 1.19},
