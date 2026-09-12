@@ -204,12 +204,59 @@ with tab4:
     if "Poista" in edited_df.columns:
         st.session_state.custom_products = edited_df[edited_df["Poista"] == False].reset_index(drop=True)
 
-# --- TAB 5: PERUSRUOKABUDJETOIJA ---
+# --- TAB 5: PERUSRUOKABUDJETOIJA (UUDISTETTU & MONIPUOLISEMPI) ---
 with tab5:
-    st.subheader("4. Perusruokabudjetti & Kauppavinkit")
-    family_size_basic = st.selectbox("Talouden koko", ["1 henkilö", "2 henkilöä", "Perhe"], key="t5_family")
-    if st.button("Luo perusopas"):
-        st.write(f"Perusvinkki taloudelle ({family_size_basic}): Suunnittele ruuat etukäteen ja hyödynnä kauppojen omat merkit säästääksesi selvää rahaa!")
+    st.subheader("🛒 Arjen Perusruokabudjetti & Älykkäät Säästövinkit")
+    st.write("Tarkista suositellut ruokabudjetit ja nappaa parhaat arjen säästökikat käyttöösi ilman lisämaksuja!")
+
+    family_size_basic = st.selectbox("Valitse talouden koko", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)"], key="t5_family")
+    
+    # Määritetään suuntaa-antavat suositukset talouden koon mukaan
+    if family_size_basic == "1 henkilö":
+        suf_suositus = "200 – 260 € / kk (~50–65 € / vko)"
+        kerta_ostos = "Noin 40–50 € / kauppareissu"
+    elif family_size_basic == "2 henkilöä":
+        suf_suositus = "350 – 450 € / kk (~90–110 € / vko)"
+        kerta_ostos = "Noin 70–90 € / kauppareissu"
+    else:
+        suf_suositus = "600 – 800 € / kk (~150–200 € / vko)"
+        kerta_ostos = "Noin 120–160 € / kauppareissu"
+
+    st.info(f"📊 **Suositeltu ruokabudjetti ({family_size_basic}):** {suf_suositus} | Suositeltava kertaostos: {kerta_ostos}")
+
+    st.markdown("---")
+    st.markdown("### 💡 Parhaat ilmaiset säästövinkit ruokakauppaan")
+    
+    col_vinkki1, col_vinkki2 = st.columns(2)
+    with col_vinkki1:
+        st.markdown("#### 1. Suunnitelmallisuus & Kauppalista")
+        st.write(
+            "- **Käy kaupassa vain kerran tai kahdesti viikossa:** "
+            "Jatkuva heräteostoksilla käynti kasvattaa ruokamenoja jopa 30 %.\n"
+            "- **Älä koskaan mene kauppaan nälkäisenä:** "
+            "Nälkäisenä ostoskoriin tarttuu helposti kalliita valmisruokia ja turhia herkkuja."
+        )
+        st.markdown("#### 2. Tuotemerkit & Hinnoittelu")
+        st.write(
+            "- **Suosi kauppojen omia merkkejä** (esim. Rainbow, K-Menu, Pirkka Parhaat -edulliset, X-tra): "
+            "Tuotteet ovat usein täysin samaa laatua kuin kalliimmat brändituotteet.\n"
+            "- **Tarkista kilohinta:** Älä tuijota pelkkää pakkaushintaa. Iso pakkaus ei aina ole halvempi kilohinnaltaan."
+        )
+    with col_vinkki2:
+        st.markdown("#### 3. Hävikkiruoka & Sesongit")
+        st.write(
+            "- **Hyödynnä laputetut tuotteet:** "
+            "Etsi kauppojen -30% ja -60% punalappuiset tuotteet. Voit pakastaa ne heti tai käyttää saman päivän aikana.\n"
+            "- **Syö sesongin mukaan:** "
+            "Juurekset, kaalit ja kotimaiset kasvikset ovat edullisimmillaan sesonkiaikanaan."
+        )
+        st.markdown("#### 4. Ruoanlaitto & Pakastaminen")
+        st.write(
+            "- **Tee kerralla isompi satsi:** "
+            "Keitot, padat ja laatikkoruoat ovat edullisia raaka-aineiltaan ja riittävät useammalle aterialle.\n"
+            "- **Hyödynnä pakastinta:** "
+            "Jaa ylijäämäruoka annosrasioihin töihin tai kiireisiin päiviin sen sijaan, että heittäisit ruokaa roskiin."
+        )
 
 # --- TAB 6: PRO - RUOKALISTA & HINTAVERTAILU ---
 with tab6:
@@ -235,7 +282,6 @@ with tab6:
             )
             meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
 
-        # Lisätty talouden koko myös Pro-puolelle omalla avaimellaan
         family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suurperhe (5+ hlö)"], key="t6_family")
 
         allergies_input = st.text_input("Allergiat / Vältettävät aineet", value="", key="t6_allergies")
