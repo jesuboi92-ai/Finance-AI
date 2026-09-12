@@ -118,10 +118,10 @@ with tab1:
                             "seka BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
                             f"Teksti:\n{pdf_text[:3000]}"
                         )
-                        resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+                        resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
                         st.info(f"AI:n loytamat tiedot tekstista: {resp.choices[0].message.content}")
                 except Exception as e:
-                    st.error("Virhe tiedoston kasittelyssa.")
+                    st.error(f"Virhe tiedoston kasittelyssa: {e}")
     else:
         st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk).")
 
@@ -175,7 +175,7 @@ with tab2:
         if st.button("Pyyda Pro AI-analyysi"):
             if api_key:
                 client = OpenAI(api_key=api_key)
-                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
+                resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
             else:
                 st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
@@ -192,7 +192,7 @@ with tab3:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
             if api_key:
                 client = OpenAI(api_key=api_key)
-                resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
+                resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
                 st.markdown(resp.choices[0].message.content)
             else:
                 st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
@@ -316,9 +316,11 @@ with tab6:
                 )
                 with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
                     try:
-                        resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+                        # Vaihdettu varmasti toimivaan gpt-3.5-turbo-malliin
+                        resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
                         st.markdown(resp.choices[0].message.content)
                     except Exception as e:
-                        st.error("Virhe tekoälypyynnössä.")
+                        # Tulostetaan nyt tarkka virheilmoitus ruudulle, jotta näkyy mistä kiikastaa
+                        st.error(f"Virhe tekoälypyynnössä: {e}")
     else:
         st.warning("🔒 **Tämä välilehti on lukittu Pro-käyttäjille (4,90 €/kk).** Päivitä Pro-versioon sivupalkin kautta avataksesi edistyneen ruokalistageneraattorin ja hintavertailun!")
