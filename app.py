@@ -1,10 +1,18 @@
 import base64
 import io
+import sys
 import pandas as pd
 import pypdf
 from PIL import Image
 import streamlit as st
 from openai import OpenAI
+
+# Pakotetaan oletuskoodaukseksi UTF-8, jotta skandinaaviset merkit eivät aiheuta virhettä
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
@@ -25,11 +33,9 @@ st.write(
 # --- SIVUPALKKI: TILAUS & PRO-AKTIVOINTI ---
 st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
 
-# Tarkistetaan onko käyttäjä aktivoinut Pro-tilan sessioon
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
 
-# API-avaimen syöttö sivupalkkiin
 with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
     st.markdown("Syötä OpenAI:n API-avain tekoälytoimintoja varten.")
     user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
@@ -57,7 +63,6 @@ else:
     st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
     
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
-        # Tänne kirjoitetaan salasana123 Pro-tilan avaamiseksi
         entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", type="password", key="entered_pin")
         if st.button("Aktivoi Pro"):
             if entered_code.strip() == "salasana123": 
@@ -84,7 +89,6 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     ]
 )
 
-# Alustetaan muuttujat session stateen
 if "custom_products" not in st.session_state:
     st.session_state.custom_products = pd.DataFrame(
         [
