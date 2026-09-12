@@ -207,9 +207,9 @@ with tab4:
 # --- TAB 5: PERUSRUOKABUDJETOIJA ---
 with tab5:
     st.subheader("4. Perusruokabudjetti & Kauppavinkit")
-    family_size = st.selectbox("Talouden koko", ["1 henkilö", "2 henkilöä", "Perhe"])
+    family_size_basic = st.selectbox("Talouden koko", ["1 henkilö", "2 henkilöä", "Perhe"], key="t5_family")
     if st.button("Luo perusopas"):
-        st.write("Perusvinkki: Suunnittele ruuat etukäteen ja hyödynnä kauppojen omat merkit säästääksesi selvää rahaa!")
+        st.write(f"Perusvinkki taloudelle ({family_size_basic}): Suunnittele ruuat etukäteen ja hyödynnä kauppojen omat merkit säästääksesi selvää rahaa!")
 
 # --- TAB 6: PRO - RUOKALISTA & HINTAVERTAILU ---
 with tab6:
@@ -235,6 +235,9 @@ with tab6:
             )
             meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
 
+        # Lisätty talouden koko myös Pro-puolelle omalla avaimellaan
+        family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suurperhe (5+ hlö)"], key="t6_family")
+
         allergies_input = st.text_input("Allergiat / Vältettävät aineet", value="", key="t6_allergies")
         stores_to_compare = st.multiselect("Valitse kaupat vertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
 
@@ -247,9 +250,10 @@ with tab6:
                 client = OpenAI(api_key=api_key)
                 stores_str = ", ".join(stores_to_compare)
                 prompt = (
-                    f"Suunnittele {days_count} päivän ruokalista: ruokavalio {diet_choice}, kalorit {daily_calories} kcal/pvä, "
+                    f"Suunnittele {days_count} päivän ruokalista taloudelle, jonka koko on '{family_size_pro}': "
+                    f"ruokavalio {diet_choice}, kaloritavoite per henkilö {daily_calories} kcal/pvä, "
                     f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pvä, allergiat: '{allergies_input}'.\n"
-                    f"Luo tarkka ostoslista oikeilla yksiköillä (esim. grammoina tai kappaleina) "
+                    f"Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja määräyksiköillä (esim. grammoina tai paketteina) "
                     f"sekä Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava määrä, {stores_str}]. "
                     f"Laske taulukon loppuun YHTEENSÄ (€) -summat jokaiselle kaupalle."
                 )
