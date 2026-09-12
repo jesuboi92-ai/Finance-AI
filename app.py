@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
 
-# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA TAI SIVUPALKIN KENTASTä ---
+# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA TAI SIVUPALKIN KENTÄSTÄ ---
 try:
     default_api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
