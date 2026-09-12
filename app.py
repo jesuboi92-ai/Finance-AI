@@ -1,17 +1,21 @@
-import base64
 import io
+import os
 import sys
 import pandas as pd
 import pypdf
-from PIL import Image
 import streamlit as st
 from openai import OpenAI
+
+# Pakotetaan UTF-8 koodaus konsoleille ja I/O-virtoihin, jotta ascii-virheitä ei tule
+os.environ["PYTHONIOENCODING"] = "utf-8"
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
 
-# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA TAI SIVUPALKIN KENTÄSTÄ ---
+# --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA TAI SIVUPALKIN KENTASTA ---
 try:
     default_api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
@@ -120,8 +124,8 @@ with tab1:
                         )
                         resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
                         st.info(f"AI:n loytamat tiedot tekstista: {resp.choices[0].message.content}")
-                except Exception as e:
-                    st.error(f"Virhe tiedoston kasittelyssa: {e}")
+                except Exception as err:
+                    st.error(f"Virhe tiedoston kasittelyssa: {err}")
     else:
         st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk).")
 
@@ -174,9 +178,12 @@ with tab2:
         sijoitus_kohde_kuvaus = st.text_area("Strategia:", "Sijoitan globaaliin indeksirahastoon.")
         if st.button("Pyyda Pro AI-analyysi"):
             if api_key:
-                client = OpenAI(api_key=api_key)
-                resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
-                st.markdown(resp.choices[0].message.content)
+                try:
+                    client = OpenAI(api_key=api_key)
+                    resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
+                    st.markdown(resp.choices[0].message.content)
+                except Exception as err:
+                    st.error(f"Virhe tekoalypyynnossa: {err}")
             else:
                 st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
     else:
@@ -191,9 +198,12 @@ with tab3:
     if is_pro_unlocked:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
             if api_key:
-                client = OpenAI(api_key=api_key)
-                resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
-                st.markdown(resp.choices[0].message.content)
+                try:
+                    client = OpenAI(api_key=api_key)
+                    resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
+                    st.markdown(resp.choices[0].message.content)
+                except Exception as err:
+                    st.error(f"Virhe tekoalypyynnossa: {err}")
             else:
                 st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
     else:
@@ -304,23 +314,22 @@ with tab6:
             elif len(stores_to_compare) < 1:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
-                client = OpenAI(api_key=api_key)
                 stores_str = ", ".join(stores_to_compare)
+                # Puhtaan ASCII-yhteensopivan tekstin varmistaminen promptille
                 prompt = (
-                    f"Suunnittele {days_count} päivän ruokalista taloudelle, jonka koko on '{family_size_pro}': "
-                    f"ruokavalio {diet_choice}, kaloritavoite per henkilö {daily_calories} kcal/pvä, "
-                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pvä, allergiat: '{allergies_input}'.\n"
-                    f"Let's write in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja määräyksiköillä (esim. grammoina tai paketteina) "
-                    f"sekä Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava määrä, {stores_str}]. "
-                    f"Laske taulukon loppuun YHTEENSÄ (€) -summat jokaiselle kaupalle."
+                    f"Suunnittele {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
+                    f"ruokavalio {diet_choice}, kaloritavoite per henkilo {daily_calories} kcal/pva, "
+                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{allergies_input}'. "
+                    f"Write output in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja maarayksikoilla (esim. grammoina tai paketteina) "
+                    f"seka Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava maarat, {stores_str}]. "
+                    f"Laske taulukon loppuun YHTEENSA euroina -summat jokaiselle kaupalle."
                 )
                 with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
                     try:
-                        # Vaihdettu varmasti toimivaan gpt-3.5-turbo-malliin
+                        client = OpenAI(api_key=api_key)
                         resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
-                        st.markdown(resp.choices[0].message.content)
-                    except Exception as e:
-                        # Tulostetaan nyt tarkka virheilmoitus ruudulle, jotta näkyy mistä kiikastaa
-                        st.error(f"Virhe tekoälypyynnössä: {e}")
+                        st.markdown(resp.choices[0].message.content.encode('utf-8', errors='ignore').decode('utf-8'))
+                    except Exception as err:
+                        st.error(f"Virhe tekoalypyynnossa: {err}")
     else:
         st.warning("🔒 **Tämä välilehti on lukittu Pro-käyttäjille (4,90 €/kk).** Päivitä Pro-versioon sivupalkin kautta avataksesi edistyneen ruokalistageneraattorin ja hintavertailun!")
