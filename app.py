@@ -341,10 +341,11 @@ with tab6:
                     f"käyttäjän paino {body_weight} kg ja pituus {body_height} cm (käytä näitä mittoja arvioidaksesi optimaalisen kalorien ja makroravinteiden tarpeen), "
                     f"allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
                     f"VAATIMUKSET VASTAUKSELLE:\n"
-                    f"1. **Ruokalista ja hinnat**: Näytä jokaiselle päivälle ateriat, arvioidut kalorit/makrot painon/pituuden perusteella sekä tarkasti hinta per ateria sekä hinta per päivä.\n"
-                    f"2. **Täydellinen ostoslista**: Listaa KAIKKI ruokalistassa käytettävät raaka-aineet ja elintarvikkeet, jotka tarvitaan viikon ruokien valmistukseen. Huomioi ostoslistassa todelliset myyntipakkaukset (esim. 400g kanafilee, 1kg riisi, 1l maito) eikä pelkkiä reseptimittoja.\n"
-                    f"3. **Kattava hintavertailutaulukko**: Tee Markdown-taulukko, jossa on sarakkeina: [Tuote / Pakkaus, Tarvittava määrä viikolle, {stores_str}]. **Varmista, että jokaiselle tuotteelle löytyy hinta jokaiseen valittuun kauppaan ({stores_str})**, eikä kenttiä jätetä tyhjäksi.\n"
-                    f"4. **Yhteenveto**: Laske taulukon loppuun rivit: **Keskimääräinen hinta per päivä**, **Keskimääräinen hinta per ateria** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
+                    f"1. **Vaihtuvat ateriat**: Jokaisella päivällä (Päivä 1 - Päivä {days_count}) TÄYTYY OLLA ERI AIKAAN ERI ATERIAT. Älä toista samaa ruokalistaa sellaisenaan eri päiville, vaan luo monipuolinen ja vaihteleva viikko-ohjelma.\n"
+                    f"2. **Ruokalista ja hinnat**: Näytä jokaiselle päivälle omat ateriat, arvioidut kalorit/makrot painon/pituuden perusteella sekä tarkasti hinta per ateria sekä hinta per päivä.\n"
+                    f"3. **Täydellinen ostoslista**: Listaa KAIKKI ruokalistassa käytettävät raaka-aineet ja elintarvikkeet, jotka tarvitaan viikon ruokien valmistukseen. Huomioi ostoslistassa todelliset myyntipakkaukset (esim. 400g kanafilee, 1kg riisi, 1l maito) eikä pelkkiä reseptimittoja.\n"
+                    f"4. **Kattava hintavertailutaulukko**: Tee Markdown-taulukko, jossa on sarakkeina: [Tuote / Pakkaus, Tarvittava määrä viikolle, {stores_str}]. **Varmista, että jokaiselle tuotteelle löytyy hinta jokaiseen valittuun kauppaan ({stores_str})**, eikä kenttiä jätetä tyhjäksi.\n"
+                    f"5. **Yhteenveto**: Laske taulukon loppuun rivit: **Keskimääräinen hinta per päivä**, **Keskimääräinen hinta per ateria** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
                 )
                 with st.spinner("Luodaan optimoitua Pro-ruokalistaa ja hintavertailua..."):
                     try:
