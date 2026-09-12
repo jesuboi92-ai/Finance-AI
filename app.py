@@ -7,15 +7,6 @@ from PIL import Image
 import streamlit as st
 from openai import OpenAI
 
-# Pakotetaan UTF-8 merkistökoodaus käyttöön skandinaavisten kirjainten virheiden välttämiseksi
-try:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-    if hasattr(sys.stderr, "reconfigure"):
-        sys.stderr.reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
@@ -28,18 +19,18 @@ except Exception:
 
 st.title("📈 Talous-AI & Vaurastumisassistentti (Free & Pro)")
 st.write(
-    "Älykäs talousassistentti arkeen ja sijoittamiseen. "
-    "Käytä ilmaisia perustoimintoja tai päivitä Pro-versioon!"
+    "Alykas talousassistentti arkeen ja sijoittamiseen. "
+    "Kayta ilmaisia perustoimintoja tai paivita Pro-versioon!"
 )
 
 # --- SIVUPALKKI: TILAUS & PRO-AKTIVOINTI ---
-st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
+st.sidebar.header("💎 Kayttooikeus & Tilaukset")
 
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
 
 with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
-    st.markdown("Syötä OpenAI:n API-avain tekoälytoimintoja varten.")
+    st.markdown("Syota OpenAI:n API-avain tekoalytoimintoja varten.")
     user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
     if user_api_input:
         api_key = user_api_input.strip()
@@ -49,23 +40,23 @@ with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_k
 st.sidebar.markdown("---")
 
 if st.session_state.is_pro:
-    st.sidebar.success("✅ Pro-tila aktivoituna tässä istunnossa!")
+    st.sidebar.success("✅ Pro-tila aktivoituna tassa istunnossa!")
     if st.sidebar.button("Kirjaudu ulos Pro-tilasta"):
         st.session_state.is_pro = False
         st.rerun()
 else:
     st.sidebar.info("Olet **Ilmaisversiossa**.")
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🚀 Päivitä Pro-versioon")
+    st.sidebar.subheader("🚀 Paivita Pro-versioon")
     st.sidebar.markdown(
-        "Hanki kaikki tekoälyominaisuudet, PDF-palkkalaskelman luku, kuvaskanneri ja älykäs hintavertailu!"
+        "Hanki kaikki tekoalyominaisuudet, PDF-palkkalaskelman luku, kuvaskanneri ja alykas hintavertailu!"
     )
     st.sidebar.markdown("**Hinnat:**")
     st.sidebar.markdown("- 🌟 **4,90 € / kk**")
-    st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
+    st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(saasta 17%)*")
     
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
-        entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", type="password", key="entered_pin")
+        entered_code = st.text_input("Syota lisenssikoodi / PIN", value="", type="password", key="entered_pin")
         if st.button("Aktivoi Pro"):
             if entered_code.strip() == "salasana123": 
                 st.session_state.is_pro = True
@@ -75,11 +66,11 @@ else:
                 st.error("Virheellinen koodi. Kokeile salasana123")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään.*")
+    st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys yllapitajaan.*")
 
 is_pro_unlocked = st.session_state.is_pro
 
-# Pääsovelluksen välilehdet
+# Paasovelluksen valilehdet
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
         "📝 Tulot & Menot", 
@@ -112,7 +103,7 @@ with tab1:
         
         if uploaded_pdf is not None:
             if not api_key:
-                st.error("⚠️ Syötä OpenAI API-avain sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tiedoston lukemista.")
+                st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin ennen tiedoston lukemista.")
             else:
                 try:
                     reader = pypdf.PdfReader(uploaded_pdf)
@@ -120,25 +111,25 @@ with tab1:
                     for page in reader.pages:
                         pdf_text += page.extract_text() or ""
                     
-                    with st.spinner("Tekoäly lukee palkkatietoja PDF:stä..."):
+                    with st.spinner("Tekoaly lukee palkkatietoja PDF:sta..."):
                         client = OpenAI(api_key=api_key)
                         prompt = (
-                            "Etsi seuraavasta palkkalaskelman tekstistä NETTO-palkka (käteen jäävä summa) "
-                            "sekä BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
+                            "Etsi seuraavasta palkkalaskelman tekstista NETTO-palkka (kateen jaava summa) "
+                            "seka BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
                             f"Teksti:\n{pdf_text[:3000]}"
                         )
                         resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-                        st.info(f"AI:n löytämät tiedot tekstistä: {resp.choices[0].message.content}")
+                        st.info(f"AI:n loytamat tiedot tekstista: {resp.choices[0].message.content}")
                 except Exception as e:
-                    st.error(f"Virhe tiedoston käsittelyssä: {e}")
+                    st.error("Virhe tiedoston kasittelyssa.")
     else:
-        st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk). Päivitä Pro-versioon sivupalkista!")
+        st.info("🔒 **PDF-palkkalaskelman automaattinen luku** vaatii Pro-version (4,90 €/kk).")
 
     col1, col2 = st.columns(2)
     with col1:
         monthly_income = st.number_input("Netto-kuukausitulot (€)", min_value=0.0, value=2500.0, step=50.0)
         vuokra = st.number_input("Vuokra / Asuntolaina (€)", min_value=0.0, value=800.0, step=50.0)
-        sahko = st.number_input("Sähkö (€)", min_value=0.0, value=40.0, step=10.0)
+        sahko = st.number_input("Sahko (€)", min_value=0.0, value=40.0, step=10.0)
         vesi = st.number_input("Vesi (€)", min_value=0.0, value=20.0, step=5.0)
     with col2:
         ruokakulut = st.number_input("Arvioidut ruokakulut (kauppa) (€)", min_value=0.0, value=350.0, step=25.0)
@@ -147,18 +138,18 @@ with tab1:
 
     total_expenses = vuokra + sahko + vesi + ruokakulut + suoratoisto + muut_menot
     net_left = monthly_income - total_expenses
-    st.info(f"📊 Yhteenveto: Tulot {monthly_income} € | Menot **{total_expenses} €** | Jäljelle jää: **{net_left} €**")
+    st.info(f"📊 Yhteenveto: Tulot {monthly_income} € | Menot **{total_expenses} €** | Jaljelle jaa: **{net_left} €**")
 
 # --- TAB 2: SIJOITUSPUSKURI ---
 with tab2:
     st.subheader("2. Sijoittamiskeskeinen optimointi & Korkoa korolle -laskuri")
-    current_balance = st.number_input("Tilillä oleva nykyinen käyttöraha yhteensä (€)", value=3500.0, key="curr_bal")
+    current_balance = st.number_input("Tililla oleva nykyinen kayttoraha yhteensa (€)", value=3500.0, key="curr_bal")
     buffer_need = st.number_input("Turvapuskurin tavoite (€)", value=2000.0, key="buff_need")
 
-    if st.button("Laske sijoitettava ylijäämä"):
+    if st.button("Laske sijoitettava ylijaama"):
         excess_cash = current_balance - buffer_need
         if excess_cash > 0:
-            st.success(f"💡 **Sijoituspotentiaali:** Noin **{excess_cash:.0f} euroa** puskurin ylittävää rahaa.")
+            st.success(f"💡 **Sijoituspotentiaali:** Noin **{excess_cash:.0f} euroa** puskurin ylittavaa rahaa.")
         else:
             st.info("Keskity ensin saavuttamaan turvapuskuritavoite.")
 
@@ -166,7 +157,7 @@ with tab2:
     col_inv1, col_inv2 = st.columns(2)
     with col_inv1:
         alkup_sijoitus = st.number_input("Alkusijoitus (€)", value=1000.0, step=100.0)
-        kk_sijoitus = st.number_input("Kuukausisäästö (€)", value=150.0, step=25.0)
+        kk_sijoitus = st.number_input("Kuukausisaasto (€)", value=150.0, step=25.0)
     with col_inv2:
         sijoitus_aika_vuotta = st.slider("Sijoitusaika (vuotta)", 1, 40, 10)
         arvioitu_tuotto_prosentti = st.slider("Arvioitu vuosituotto (%)", 0.0, 20.0, 7.0, 0.5)
@@ -176,26 +167,26 @@ with tab2:
     for _ in range(sijoitus_aika_vuotta * 12):
         kokonaissumma = (kokonaissumma + kk_sijoitus) * (1 + kuukausi_tuotto)
     
-    st.info(f"📊 **Salkun arvo {sijoitus_aika_vuotta} v. jälkeen:** **{kokonaissumma:,.0f} €**")
+    st.info(f"📊 **Salkun arvo {sijoitus_aika_vuotta} v. jalkeen:** **{kokonaissumma:,.0f} €**")
 
     if is_pro_unlocked:
-        st.markdown("### 🤖 [PRO] Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
+        st.markdown("### 🤖 [PRO] Kriittinen tekoalyanalyysi sijoitussuunnitelmasta")
         sijoitus_kohde_kuvaus = st.text_area("Strategia:", "Sijoitan globaaliin indeksirahastoon.")
-        if st.button("Pyydä Pro AI-analyysi"):
+        if st.button("Pyyda Pro AI-analyysi"):
             if api_key:
                 client = OpenAI(api_key=api_key)
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.error("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin.")
+                st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
     else:
-        st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
+        st.markdown("*(🔒 Pro-kayttajat saavat tahan tekoalyn tarkan riskianalyysin).*")
 
 # --- TAB 3: SMART BUDGET ---
 with tab3:
     st.subheader("3. Smart Budget & Viikkoseuranta")
     weekly_food_target = st.number_input("Viikoittainen ruokabudjetti (€)", value=80.0)
-    actual_food_spent = st.number_input("Tällä viikolla käytetty (€)", value=65.0)
+    actual_food_spent = st.number_input("Talla viikolla kaytetty (€)", value=65.0)
     
     if is_pro_unlocked:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
@@ -204,7 +195,7 @@ with tab3:
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.error("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin.")
+                st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin.")
     else:
         st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
 
@@ -213,12 +204,12 @@ with tab4:
     st.subheader("🏷️ Omat tuotehinnat & Kuvaskanneri")
     
     if is_pro_unlocked:
-        st.markdown("### 📸 [PRO] Älykäs Kuvaskanneri")
+        st.markdown("### 📸 [PRO] Alykas Kuvaskanneri")
         uploaded_files = st.file_uploader("Lataa kuitteja", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
         if uploaded_files:
             st.success(f"Ladattu {len(uploaded_files)} kuvaa skannattavaksi.")
     else:
-        st.info("🔒 Kuittien ja näyttökuvien automaattinen tekoälyskanneri on Pro-ominaisuus.")
+        st.info("🔒 Kuittien automaattinen tekoalyskanneri on Pro-ominaisuus.")
 
     st.markdown("### 📋 Omat tallennetut hinnat")
     edited_df = st.data_editor(st.session_state.custom_products, num_rows="dynamic", key="product_editor")
@@ -227,55 +218,55 @@ with tab4:
 
 # --- TAB 5: PERUSRUOKABUDJETOIJA ---
 with tab5:
-    st.subheader("🛒 Arjen Perusruokabudjetti & Älykkäät Säästövinkit")
-    st.write("Tarkista suositellut ruokabudjetit ja nappaa parhaat arjen säästökikat käyttöösi ilman lisämaksuja!")
+    st.subheader("🛒 Arjen Perusruokabudjetti & Alykkaat Saastovinkit")
+    st.write("Tarkista suositellut ruokabudjetit ja nappaa parhaat arjen saastokikat kayttöösi!")
 
-    family_size_basic = st.selectbox("Valitse talouden koko", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)"], key="t5_family")
+    family_size_basic = st.selectbox("Valitse talouden koko", ["1 henkilo", "2 henkiloa", "Perhe (3-4 hlö)"], key="t5_family")
     
-    if family_size_basic == "1 henkilö":
+    if family_size_basic == "1 henkilo":
         suf_suositus = "200 – 260 € / kk (~50–65 € / vko)"
         kerta_ostos = "Noin 40–50 € / kauppareissu"
-    elif family_size_basic == "2 henkilöä":
+    elif family_size_basic == "2 henkiloa":
         suf_suositus = "350 – 450 € / kk (~90–110 € / vko)"
         kerta_ostos = "Noin 70–90 € / kauppareissu"
     else:
         suf_suositus = "600 – 800 € / kk (~150–200 € / vko)"
         kerta_ostos = "Noin 120–160 € / kauppareissu"
 
-    st.info(f"📊 **Suositeltu ruokabudjetti ({family_size_basic}):** {suf_suositus} | Suositeltava kertaostos: {kerta_ostos}")
+    st.info(f"📊 **Suositeltu ruokabudjetti:** {suf_suositus} | Suositeltava kertaostos: {kerta_ostos}")
 
     st.markdown("---")
-    st.markdown("### 💡 Parhaat ilmaiset säästövinkit ruokakauppaan")
+    st.markdown("### 💡 Parhaat ilmaiset saastovinkit ruokakauppaan")
     
     col_vinkki1, col_vinkki2 = st.columns(2)
     with col_vinkki1:
         st.markdown("#### 1. Suunnitelmallisuus & Kauppalista")
         st.write(
-            "- **Käy kaupassa vain kerran tai kahdesti viikossa:** "
-            "Jatkuva heräteostoksilla käynti kasvattaa ruokamenoja jopa 30 %.\n"
-            "- **Älä koskaan mene kauppaan nälkäisenä:** "
-            "Nälkäisenä ostoskoriin tarttuu helposti kalliita valmisruokia ja turhia herkkuja."
+            "- **Kay kaupassa vain kerran tai kahdesti viikossa:** "
+            "Jatkuva herateostoksilla kaynti kasvattaa ruokamenoja.\n"
+            "- **Ala koskaan mene kauppaan nalkaisena:** "
+            "Nalkaisena ostoskoriin tarttuu helposti kalliita tuotteita."
         )
         st.markdown("#### 2. Tuotemerkit & Hinnoittelu")
         st.write(
-            "- **Suosi kauppojen omia merkkejä** (esim. Rainbow, K-Menu, Pirkka Parhaat -edulliset, X-tra): "
-            "Tuotteet ovat usein täysin samaa laatua kuin kalliimmat brändituotteet.\n"
-            "- **Tarkista kilohinta:** Älä tuijota pelkkää pakkaushintaa. Iso pakkaus ei aina ole halvempi kilohinnaltaan."
+            "- **Suosi kauppojen omia merkkeja** (esim. Rainbow, K-Menu, Pirkka): "
+            "Tuotteet ovat usein samaa laatua.\n"
+            "- **Tarkista kilohinta:** Ala tuijota pelkkaa pakkaushintaa."
         )
     with col_vinkki2:
-        st.markdown("#### 3. Hävikkiruoka & Sesongit")
+        st.markdown("#### 3. Havikkiruoka & Sesongit")
         st.write(
             "- **Hyödynnä laputetut tuotteet:** "
-            "Etsi kauppojen -30% ja -60% punalappuiset tuotteet. Voit pakastaa ne heti tai käyttää saman päivän aikana.\n"
-            "- **Syö sesongin mukaan:** "
-            "Juurekset, kaalit ja kotimaiset kasvikset ovat edullisimmillaan sesonkiaikanaan."
+            "Etsi -30% ja -60% punalappuiset tuotteet.\n"
+            "- **Syo sesongin mukaan:** "
+            "Juurekset ja kaalit ovat edullisimmillaan."
         )
         st.markdown("#### 4. Ruoanlaitto & Pakastaminen")
         st.write(
             "- **Tee kerralla isompi satsi:** "
-            "Keitot, padat ja laatikkoruoat ovat edullisia raaka-aineiltaan ja riittävät useammalle aterialle.\n"
+            "Padat ja laatikkoruoat riittavat useammalle aterialle.\n"
             "- **Hyödynnä pakastinta:** "
-            "Jaa ylijäämäruoka annosrasioihin töihin tai kiireisiin päiviin sen sijaan, että heittäisit ruokaa roskiin."
+            "Jaa ylijäämäruoka annosrasioihin."
         )
 
 # --- TAB 6: PRO - RUOKALISTA & HINTAVERTAILU ---
@@ -328,6 +319,6 @@ with tab6:
                         resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
                         st.markdown(resp.choices[0].message.content)
                     except Exception as e:
-                        st.error(f"Virhe tekoälypyynnössä: {e}")
+                        st.error("Virhe tekoälypyynnössä.")
     else:
         st.warning("🔒 **Tämä välilehti on lukittu Pro-käyttäjille (4,90 €/kk).** Päivitä Pro-versioon sivupalkin kautta avataksesi edistyneen ruokalistageneraattorin ja hintavertailun!")
