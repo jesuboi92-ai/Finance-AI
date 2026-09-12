@@ -45,15 +45,15 @@ else:
     st.sidebar.markdown("- 🌟 **4,90 € / kk**")
     st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
     
-    with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi"):
-        entered_code = st.text_input("Syötä lisenssikoodi / PIN", type="password")
+    with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
+        entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", key="entered_pin")
         if st.button("Aktivoi Pro"):
-            if entered_code == "salasana123": 
+            if entered_code.strip() == "salasana123": 
                 st.session_state.is_pro = True
                 st.success("Pro aktivoitu onnistuneesti!")
                 st.rerun()
             else:
-                st.error("Virheellinen koodi.")
+                st.error(f"Virheellinen koodi ('{entered_code}'). Kokeile salasana123")
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään (esim. MobilePay / verkkokauppalinkki).*")
