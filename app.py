@@ -11,8 +11,6 @@ st.set_page_config(
 )
 
 # --- TURVALLISUUS: HAETAAN API-AVAIN PALVELIMELTA (Käyttäjät eivät näe sitä) ---
-# Streamlit Cloudissa tämä haetaan st.secrets-muistista. 
-# Jos suoritat paikallisesti, voit käyttää fallback-testiavainta tai os.getenv.
 try:
     api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
@@ -50,8 +48,7 @@ else:
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi"):
         entered_code = st.text_input("Syötä lisenssikoodi / PIN", type="password")
         if st.button("Aktivoi Pro"):
-            # Tähän voit määritellä omat toimivat koodisi tai tarkistuksen
-            if entered_code == "pro-salaisuus-2026": 
+            if entered_code == "salasana123": 
                 st.session_state.is_pro = True
                 st.success("Pro aktivoitu onnistuneesti!")
                 st.rerun()
@@ -86,7 +83,6 @@ if "custom_products" not in st.session_state:
             {"Poista": False, "Tuote / Pakkaus": "Riisi (1kg)", "Kauppa": "K-Citymarket", "Hinta (€)": 1.60},
         ]
     )
-
 
 # --- TAB 1: TULOT & MENOT ---
 with tab1:
@@ -132,7 +128,6 @@ with tab1:
     net_left = monthly_income - total_expenses
     st.info(f"📊 Yhteenveto: Tulot {monthly_income} € | Menot **{total_expenses} €** | Jäljelle jää: **{net_left} €**")
 
-
 # --- TAB 2: SIJOITUSPUSKURI ---
 with tab2:
     st.subheader("2. Sijoittamiskeskeinen optimointi & Korkoa korolle -laskuri")
@@ -175,7 +170,6 @@ with tab2:
     else:
         st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
 
-
 # --- TAB 3: SMART BUDGET ---
 with tab3:
     st.subheader("3. Smart Budget & Viikkoseuranta")
@@ -192,7 +186,6 @@ with tab3:
                 st.warning("API-avain puuttuu.")
     else:
         st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
-
 
 # --- TAB 4: HINNAT & KUITTISKANNERI ---
 with tab4:
@@ -211,14 +204,12 @@ with tab4:
     if "Poista" in edited_df.columns:
         st.session_state.custom_products = edited_df[edited_df["Poista"] == False].reset_index(drop=True)
 
-
 # --- TAB 5: PERUSRUOKABUDJETOIJA ---
 with tab5:
     st.subheader("4. Perusruokabudjetti & Kauppavinkit")
     family_size = st.selectbox("Talouden koko", ["1 henkilö", "2 henkilöä", "Perhe"])
     if st.button("Luo perusopas"):
         st.write("Perusvinkki: Suunnittele ruuat etukäteen ja hyödynnä kauppojen omat merkit säästääksesi selvää rahaa!")
-
 
 # --- TAB 6: PRO - RUOKALISTA & HINTAVERTAILU ---
 with tab6:
