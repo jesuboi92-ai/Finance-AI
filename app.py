@@ -29,14 +29,14 @@ st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
 
-# API-avaimen syöttö sivupalkkiin (Oma erillinen kenttänsä, EI aktivointikoodi!)
+# API-avaimen syöttö sivupalkkiin
 with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
-    st.markdown("Syötä OpenAI:n virallinen API-avain (alkaa `sk-...`), jos haluat käyttää tekoälyominaisuuksia.")
+    st.markdown("Syötä OpenAI:n API-avain tekoälytoimintoja varten.")
     user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
     if user_api_input:
-        api_key = user_api_input
+        api_key = user_api_input.strip()
     else:
-        api_key = default_api_key
+        api_key = default_api_key.strip()
 
 st.sidebar.markdown("---")
 
@@ -105,8 +105,8 @@ with tab1:
         uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"], key="pdf_uploader_main")
         
         if uploaded_pdf is not None:
-            if not api_key or not api_key.startswith("sk-"):
-                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin 'OpenAI API-asetukset' -laatikkoon, jotta tekoäly toimii.")
+            if not api_key:
+                st.error("⚠️ Syötä OpenAI API-avain sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tiedoston lukemista.")
             else:
                 try:
                     reader = pypdf.PdfReader(uploaded_pdf)
@@ -176,12 +176,12 @@ with tab2:
         st.markdown("### 🤖 [PRO] Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
         sijoitus_kohde_kuvaus = st.text_area("Strategia:", "Sijoitan globaaliin indeksirahastoon.")
         if st.button("Pyydä Pro AI-analyysi"):
-            if api_key and api_key.startswith("sk-"):
+            if api_key:
                 client = OpenAI(api_key=api_key)
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin asetuksiin.")
+                st.error("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin.")
     else:
         st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
 
@@ -193,12 +193,12 @@ with tab3:
     
     if is_pro_unlocked:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
-            if api_key and api_key.startswith("sk-"):
+            if api_key:
                 client = OpenAI(api_key=api_key)
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin asetuksiin.")
+                st.error("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin.")
     else:
         st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
 
@@ -302,8 +302,8 @@ with tab6:
         stores_to_compare = st.multiselect("Valitse kaupat vertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
 
         if st.button("Generoi Pro-ruokalista ja hintavertailutaulukko"):
-            if not api_key or not api_key.startswith("sk-"):
-                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tekoälypyynnön tekemistä.")
+            if not api_key:
+                st.error("⚠️ Syötä OpenAI API-avain sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tekoälypyynnön tekemistä.")
             elif len(stores_to_compare) < 1:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
