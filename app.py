@@ -335,14 +335,17 @@ with tab6:
             else:
                 stores_str = ", ".join(stores_to_compare)
                 prompt = (
-                    f"Suunnittele {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
+                    f"Suunnittele tarkka {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, kaloritavoite per henkilo {daily_calories} kcal/pva, "
                     f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{allergies_input}'. "
-                    f"Write output in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja maarayksikoilla "
-                    f"seka Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava maara, {stores_str}]. "
-                    f"Laske taulukon loppuun YHTEENSA euroina -summat jokaiselle kaupalle."
+                    f"Write output in Finnish. \n\n"
+                    f"VAATIMUKSET VASTAUKSELLE:\n"
+                    f"1. Näytä jokaiselle päivälle (esim. Maanantai, Tiistai...) ateriat ja arvioi **hinta per ateria** sekä **hinta per päivä**.\n"
+                    f"2. Luo kattava viikon ostoslista (koko viikon tarve huomioiden myyntipakkaukset, ei pelkkiä raaka-ainemääriä).\n"
+                    f"3. Tee Markdown-taulukko ostoslistasta, jossa sarakkeina ovat: [Tuote / Pakkaus, Tarvittava määrä, {stores_str}].\n"
+                    f"4. Laske taulukon loppuun selkeästi rivit: **Hinta per päivä (keskiarvo)**, **Hinta per ateria (keskiarvo)** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
                 )
-                with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
+                with st.spinner("Luodaan Pro-ruokalistaa, ateriahintoja ja hintavertailua..."):
                     try:
                         result_text = call_openai_api(api_key, prompt)
                         st.markdown(result_text)
