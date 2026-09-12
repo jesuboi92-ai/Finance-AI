@@ -25,23 +25,20 @@ st.write(
 # --- SIVUPALKKI: TILAUS & PRO-AKTIVOINTI ---
 st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
 
-# API-avaimen syöttö sivupalkkiin, jos sitä ei ole määritetty stremlit secretsiin
-with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
-    user_api_input = st.text_input("Syötä OpenAI API-avain", value="", type="password", key="user_openai_key")
-    if user_api_input:
-        api_key = user_api_input
-        st.success("API-avain tallennettu sessioon!")
-    else:
-        api_key = default_api_key
-
-if not api_key:
-    st.sidebar.warning("⚠️ Syötä OpenAI API-avain sivupalkin asetuksiin, jotta tekoälytoiminnot toimivat.")
-
-st.sidebar.markdown("---")
-
 # Tarkistetaan onko käyttäjä aktivoinut Pro-tilan sessioon
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
+
+# API-avaimen syöttö sivupalkkiin (Oma erillinen kenttänsä, EI aktivointikoodi!)
+with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=not default_api_key):
+    st.markdown("Syötä OpenAI:n virallinen API-avain (alkaa `sk-...`), jos haluat käyttää tekoälyominaisuuksia.")
+    user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
+    if user_api_input:
+        api_key = user_api_input
+    else:
+        api_key = default_api_key
+
+st.sidebar.markdown("---")
 
 if st.session_state.is_pro:
     st.sidebar.success("✅ Pro-tila aktivoituna tässä istunnossa!")
@@ -60,6 +57,7 @@ else:
     st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
     
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
+        # Tänne kirjoitetaan salasana123 Pro-tilan avaamiseksi
         entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", type="password", key="entered_pin")
         if st.button("Aktivoi Pro"):
             if entered_code.strip() == "salasana123": 
@@ -107,8 +105,8 @@ with tab1:
         uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"], key="pdf_uploader_main")
         
         if uploaded_pdf is not None:
-            if not api_key:
-                st.warning("Syötä OpenAI API-avain sivupalkkiin ennen tiedoston lukemista.")
+            if not api_key or not api_key.startswith("sk-"):
+                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin 'OpenAI API-asetukset' -laatikkoon, jotta tekoäly toimii.")
             else:
                 try:
                     reader = pypdf.PdfReader(uploaded_pdf)
@@ -178,12 +176,12 @@ with tab2:
         st.markdown("### 🤖 [PRO] Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
         sijoitus_kohde_kuvaus = st.text_area("Strategia:", "Sijoitan globaaliin indeksirahastoon.")
         if st.button("Pyydä Pro AI-analyysi"):
-            if api_key:
+            if api_key and api_key.startswith("sk-"):
                 client = OpenAI(api_key=api_key)
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.warning("OpenAI API-avain puuttuu. Syötä se sivupalkkiin.")
+                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin asetuksiin.")
     else:
         st.markdown("*(🔒 Pro-käyttäjät saavat tähän tekoälyn tarkan riskianalyysin sijoituksistaan).*")
 
@@ -195,12 +193,12 @@ with tab3:
     
     if is_pro_unlocked:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
-            if api_key:
+            if api_key and api_key.startswith("sk-"):
                 client = OpenAI(api_key=api_key)
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
                 st.markdown(resp.choices[0].message.content)
             else:
-                st.warning("API-avain puuttuu. Syötä se sivupalkkiin.")
+                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin asetuksiin.")
     else:
         st.info("🔒 AI-palaute budjetille vaatii Pro-tilan.")
 
@@ -304,8 +302,8 @@ with tab6:
         stores_to_compare = st.multiselect("Valitse kaupat vertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
 
         if st.button("Generoi Pro-ruokalista ja hintavertailutaulukko"):
-            if not api_key:
-                st.warning("OpenAI API-avain puuttuu. Syötä se sivupalkin 'OpenAI API-asetukset' -laatikkoon.")
+            if not api_key or not api_key.startswith("sk-"):
+                st.error("⚠️ Anna oikea OpenAI API-avain (alkaa 'sk-...') sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tekoälypyynnön tekemistä.")
             elif len(stores_to_compare) < 1:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
@@ -315,12 +313,15 @@ with tab6:
                     f"Suunnittele {days_count} päivän ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, kaloritavoite per henkilö {daily_calories} kcal/pvä, "
                     f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pvä, allergiat: '{allergies_input}'.\n"
-                    f"Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja määräyksiköillä (esim. grammoina tai paketteina) "
+                    f"Let's write in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja määräyksiköillä (esim. grammoina tai paketteina) "
                     f"sekä Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava määrä, {stores_str}]. "
                     f"Laske taulukon loppuun YHTEENSÄ (€) -summat jokaiselle kaupalle."
                 )
                 with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
-                    resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-                    st.markdown(resp.choices[0].message.content)
+                    try:
+                        resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+                        st.markdown(resp.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"Virhe tekoälypyynnössä: {e}")
     else:
         st.warning("🔒 **Tämä välilehti on lukittu Pro-käyttäjille (4,90 €/kk).** Päivitä Pro-versioon sivupalkin kautta avataksesi edistyneen ruokalistageneraattorin ja hintavertailun!")
