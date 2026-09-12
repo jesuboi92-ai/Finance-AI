@@ -26,12 +26,10 @@ st.sidebar.header("💎 Käyttöoikeus & Tilaukset")
 if "is_pro" not in st.session_state:
     st.session_state.is_pro = False
 
-# Pakotetaan expander aina auki (expanded=True), jotta avaimen syöttökenttä näkyy varmasti
 with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=True):
     st.markdown("Syötä OpenAI:n API-avain tekoälytoimintoja varten.")
     user_api_input = st.text_input("OpenAI API-avain", value="", type="password", key="user_openai_key")
     
-    # Tarkistetaan avain suoraan ja tallennetaan session_stateen, ettei se katoa
     if user_api_input:
         st.session_state.active_api_key = user_api_input.strip()
     elif "active_api_key" not in st.session_state:
@@ -39,7 +37,6 @@ with st.sidebar.expander("🔑 OpenAI API-asetukset", expanded=True):
 
 api_key = st.session_state.get("active_api_key", "")
 
-# Näytetään pieni merkkivalo sivupalkissa kertomaan onko avain syötetty
 if api_key:
     st.sidebar.success("✅ API-avain tallennettu muistiin!")
 else:
@@ -78,7 +75,7 @@ else:
 
 is_pro_unlocked = st.session_state.is_pro
 
-# Apufunktio OpenAI-kutsuille requests-kirjaston kautta
+# Apufunktio OpenAI-kutsuille (lisätty max_tokens, jotta vastaukset eivät katkea kesken)
 def call_openai_api(key, prompt_text, model="gpt-3.5-turbo"):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
@@ -87,7 +84,8 @@ def call_openai_api(key, prompt_text, model="gpt-3.5-turbo"):
     }
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt_text}]
+        "messages": [{"role": "user", "content": prompt_text}],
+        "max_tokens": 4000
     }
     response = requests.post(url, headers=headers, data=json.dumps(payload, ensure_ascii=False).encode('utf-8'))
     if response.status_code == 200:
@@ -338,14 +336,14 @@ with tab6:
                 prompt = (
                     f"Suunnittele erittäin tarkka {days_count} päivän ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, tavoite {goal_choice}, ateriat {meals_per_day} kpl/pvä, "
-                    f"käyttäjän paino {body_weight} kg ja pituus {body_height} cm (käytä näitä mittoja arvioidaksesi optimaalisen kalorien ja makroravinteiden tarpeen), "
-                    f"allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
+                    f"käyttäjän paino {body_weight} kg ja pituus {body_height} cm, allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
                     f"VAATIMUKSET VASTAUKSELLE:\n"
-                    f"1. **Vaihtuvat ateriat**: Jokaisella päivällä (Päivä 1 - Päivä {days_count}) TÄYTYY OLLA ERI AIKAAN ERI ATERIAT. Älä toista samaa ruokalistaa sellaisenaan eri päiville, vaan luo monipuolinen ja vaihteleva viikko-ohjelma.\n"
-                    f"2. **Ruokalista ja hinnat**: Näytä jokaiselle päivälle omat ateriat, arvioidut kalorit/makrot painon/pituuden perusteella sekä tarkasti hinta per ateria sekä hinta per päivä.\n"
-                    f"3. **Täydellinen ostoslista**: Listaa KAIKKI ruokalistassa käytettävät raaka-aineet ja elintarvikkeet, jotka tarvitaan viikon ruokien valmistukseen. Huomioi ostoslistassa todelliset myyntipakkaukset (esim. 400g kanafilee, 1kg riisi, 1l maito) eikä pelkkiä reseptimittoja.\n"
-                    f"4. **Kattava hintavertailutaulukko**: Tee Markdown-taulukko, jossa on sarakkeina: [Tuote / Pakkaus, Tarvittava määrä viikolle, {stores_str}]. **Varmista, että jokaiselle tuotteelle löytyy hinta jokaiseen valittuun kauppaan ({stores_str})**, eikä kenttiä jätetä tyhjäksi.\n"
-                    f"5. **Yhteenveto**: Laske taulukon loppuun rivit: **Keskimääräinen hinta per päivä**, **Keskimääräinen hinta per ateria** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
+                    f"1. **Päiväkohtaiset kalorit ja makrot**: Jokaiselle päivälle (Päivä 1 - Päivä {days_count}) TÄYTYY MÄÄRITTÄÄ TARKASTI arvioidut kalorit ja makroravinteet (Proteiinit 20-25%, Hiilihydraatit 45-50%, Rasvat 30-35%).\n"
+                    f"2. **Ateria- ja päiväkohtaiset hinnat**: Ilmoita jokaiselle aterialle arvioitu hinta sekä koko päivän yhteishinta.\n"
+                    f"3. **Vaihtuvat ateriat**: Jokaisella päivällä TÄYTYY OLLA ERI AIKAAN ERI ATERIAT (esim. aamiainen, välipala, lounas, välipala, päivällinen, iltapala) monipuolisella kaavalla.\n"
+                    f"4. **Täydellinen ostoslista**: Listaa KAIKKI ruokalistassa käytettävät raaka-aineet todellisissa myyntipakkauksissa.\n"
+                    f"5. **Kattava hintavertailutaulukko**: Tee Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä viikolle, {stores_str}]. Varmista, että jokaiselle tuotteelle löytyy hinta jokaiseen valittuun kauppaan.\n"
+                    f"6. **Yhteenveto**: Laske taulukon loppuun rivit: **Keskimääräinen hinta per päivä**, **Keskimääräinen hinta per ateria** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
                 )
                 with st.spinner("Luodaan optimoitua Pro-ruokalistaa ja hintavertailua..."):
                     try:
