@@ -12,8 +12,8 @@ st.set_page_config(
 
 st.title("📈 Talous-AI & Vaurastumisassistentti (Pro)")
 st.write(
-    "Kattava talousvalmentaja, sijoituspuskurin laskija, älykäs budjetoija "
-    "sekä tarkalla gpt-4o -kuvaskannerilla varustettu työkalu."
+    "Kattava talousvalmentaja, sijoituspuskurin laskija, älykäs budjetoija, "
+    "palkkalaskelmien PDF-lukija sekä tarkalla tekoälyllä varustettu työkalu."
 )
 
 # Sivupalkki asetuksille
@@ -23,10 +23,10 @@ app_mode = st.sidebar.selectbox(
 )
 api_key = st.sidebar.text_input("Syötä OpenAI API-avain", type="password")
 
-# Pääsovelluksen välilehdet
+# Pääsovelluksen välilehdet (kaikki vanhat ja uudet mukana)
 tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
-        "📝 Manuaaliset menot", 
+        "📝 Tulot, PDF & Menot", 
         "🎯 Sijoituspuskuri & -opas", 
         "💡 Smart Budget", 
         "🛒 Ruokalista, Budjetti & Kauppavinkit",
@@ -49,6 +49,9 @@ if "custom_products" not in st.session_state:
 if "uploaded_image_records" not in st.session_state:
     st.session_state.uploaded_image_records = []
 
+if "extracted_pdf_income" not in st.session_state:
+    st.session_state.extracted_pdf_income = 0.0
+
 
 def compress_image(image_bytes, max_size=1600):
     try:
@@ -69,7 +72,35 @@ def encode_image(image_bytes):
 
 
 with tab1:
-    st.subheader("1. Tulot ja manuaaliset elämisen kulut")
+    st.subheader("1. Tulot (myös PDF-palkkalaskelman luku) & Manuaaliset menot")
+    
+    st.markdown("### 📄 Tuo tulotiedot suoraan PDF-palkkalaskelmasta")
+    uploaded_pdf = st.file_uploader("Lataa palkkalaskelma (PDF)", type=["pdf"])
+    
+    if uploaded_pdf is not None:
+        try:
+            reader = pypdf.PdfReader(uploaded_pdf)
+            pdf_text = ""
+            for page in reader.pages:
+                pdf_text += page.extract_text() or ""
+            
+            if api_key and pdf_text.strip():
+                with st.spinner("Tekoäly lukee palkkatietoja PDF:stä..."):
+                    client = OpenAI(api_key=api_key)
+                    prompt = (
+                        "Etsi seuraavasta palkkalaskelman tekstistä NETTO-palkka (käteen jäävä summa) "
+                        "sekä BRUTTO-palkka. Palauta tulos puhtaana numerona muodossa: "
+                        "Netto: [numero], Brutto: [numero]. Jos et löydä varmaa summaa, arvioi tai laita 0.\n\n"
+                        f"Teksti:\n{pdf_text[:3000]}"
+                    )
+                    resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
+                    ai_answer = resp.choices[0].message.content
+                    st.info(f"AI:n löytämät tiedot tekstistä: {ai_answer}")
+            else:
+                st.write("PDF luettu (syötä API-avain sivupalkkiin, jos haluat tekoälyn jäsentävän summan automaattisesti).")
+        except Exception as e:
+            st.error(f"Virhe PDF-tiedoston lukemisessa: {e}")
+
     col1, col2 = st.columns(2)
     with col1:
         monthly_income = st.number_input("Netto-kuukausitulot (€)", min_value=0.0, value=2500.0, step=50.0)
@@ -112,7 +143,6 @@ with tab2:
         sijoitus_aika_vuotta = st.slider("Sijoitusaika (vuotta)", 1, 40, 10)
         arvioitu_tuotto_prosentti = st.slider("Arvioitu vuosituotto (%)", 0.0, 20.0, 7.0, 0.5)
 
-    # Lasketaan korkoa korolle
     kokonaissumma = alkup_sijoitus
     kuukausi_tuotto = arvioitu_tuotto_prosentti / 100 / 12
     kuukausia = sijoitus_aika_vuotta * 12
