@@ -23,7 +23,7 @@ app_mode = st.sidebar.selectbox(
 )
 api_key = st.sidebar.text_input("Syötä OpenAI API-avain", type="password")
 
-# Pääsovelluksen välilehdet (päivitetty ja yhdistetty selkeiksi kokonaisuuksiksi)
+# Pääsovelluksen välilehdet
 tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
         "📝 Manuaaliset menot", 
@@ -87,7 +87,7 @@ with tab1:
 
 
 with tab2:
-    st.subheader("2. Sijoittamiskeskeinen optimointi & Puskurivara")
+    st.subheader("2. Sijoittamiskeskeinen optimointi, Markkinatuoton laskenta & Kriittinen AI-analyysi")
     current_balance = st.number_input("Tilillä oleva nykyinen käyttöraha yhteensä (€)", value=3500.0)
     buffer_need = st.number_input("Turvapuskurin tavoite (€)", value=2000.0)
 
@@ -102,22 +102,97 @@ with tab2:
             st.info("Keskity ensin saavuttamaan turvapuskuritavoite.")
 
     st.markdown("---")
-    st.markdown("### 📊 Harkittu sijoitusopas ja vaihtoehdot")
+    st.markdown("### 📈 Markkinatuotto- ja Korkoa korolle -laskuri")
+    
+    col_inv1, col_inv2 = st.columns(2)
+    with col_inv1:
+        alkup_sijoitus = st.number_input("Alkusijoitus (€)", value=1000.0, step=100.0)
+        kk_sijoitus = st.number_input("Kuukausisäästö / -sijoitus (€)", value=150.0, step=25.0)
+    with col_inv2:
+        sijoitus_aika_vuotta = st.slider("Sijoitusaika (vuotta)", 1, 40, 10)
+        arvioitu_tuotto_prosentti = st.slider("Arvioitu vuosituotto (%)", 0.0, 20.0, 7.0, 0.5)
+
+    # Lasketaan korkoa korolle
+    kokonaissumma = alkup_sijoitus
+    kuukausi_tuotto = arvioitu_tuotto_prosentti / 100 / 12
+    kuukausia = sijoitus_aika_vuotta * 12
+
+    sijoitettu_paoma_yhteensa = alkup_sijoitus
+    for _ in range(kuukausia):
+        kokonaissumma = (kokonaissumma + kk_sijoitus) * (1 + kuukausi_tuotto)
+        sijoitettu_paoma_yhteensa += kk_sijoitus
+
+    tuotto_yhteensa = kokonaissumma - sijoitettu_paoma_yhteensa
+
+    st.info(
+        f"📊 **Laskelman tulos ({sijoitus_aika_vuotta} vuoden jälkeen):**\n\n"
+        f"- Sijoitettu pääoma yhteensä: **{sijoitettu_paoma_yhteensa:,.0f} €**\n"
+        f"- Arvioitu voitto / tuotto: **{tuotto_yhteensa:,.0f} €**\n"
+        f"- **Salkun arvo yhteensä:** **{kokonaissumma:,.0f} €**"
+    )
+
+    st.markdown("### 🤖 Kriittinen tekoälyanalyysi sijoitussuunnitelmasta")
+    sijoitus_kohde_kuvaus = st.text_area(
+        "Kerro lyhyesti mihin aiot sijoittaa (esim. globaalit indeksirahastot, kryptot, yksittäiset osakkeet tai asunnot):",
+        "Sijoitan kuukausittain maailma-indeksirahastoon (kuten EUNL) ja toivon n. 7% keskimääräistä tuottoa."
+    )
+
+    if st.button("Pyydä kriittinen AI-analyysi sijoituksistasi"):
+        if not api_key:
+            st.warning("Syötä sivupalkkiin OpenAI API-avain.")
+        else:
+            client = OpenAI(api_key=api_key)
+            prompt = (
+                f"Olet äärimmäisen kriittinen, realistinen ja kokenut sijoitusasiantuntija. "
+                f"Analysoi seuraavaa sijoitussuunnitelmaa:\n"
+                f"- Alkusijoitus: {alkup_sijoitus} €\n"
+                f"- Kuukausisijoitus: {kk_sijoitus} €\n"
+                f"- Sijoitusaika: {sijoitus_aika_vuotta} vuotta\n"
+                f"- Oletettu vuosituotto: {arvioitu_tuotto_prosentti} %\n"
+                f"- Sijoituskohteet ja strategia: {sijoitus_kohde_kuvaus}\n\n"
+                "Ole rehellinen riskeistä (inflaatio, markkinoiden laskukaudet eli karhumarkkinat, verotus, epärealistiset odotukset, hajautus). "
+                "Älä kaunista totuutta, vaan anna rakentavaa, mutta tiukkaa ja realistista palautetta."
+            )
+            with st.spinner("Tekoäly analysoi sijoituksiasi kriittisesti..."):
+                resp = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
+                st.markdown(resp.choices[0].message.content)
+
+    st.markdown("---")
+    st.markdown("### 📊 Laajennettu sijoitusopas & vaihtoehdot")
     st.info("⚠️ **Vastuuvapauslauseke:** Tämä työkalu on tarkoitettu vain oppimiseen ja budjetointiin, eikä se ole virallinen sijoitusneuvo tai kehotus ostaa tiettyjä arvopapereita. Sijoittamiseen liittyy aina riski pääoman menettämisestä.")
     
     sijoitus_vaihtoehto = st.selectbox(
         "Valitse omaisuuslaji, josta haluat lisätietoja:",
-        ["Osakkeet & Indeksirahastot / ETF:ät", "Korkosijoitukset (Säästötilit / Valtiolainat)"]
+        [
+            "Osakkeet & Indeksirahastot / ETF:ät", 
+            "Korkosijoitukset (Säästötilit / Valtiolainat)", 
+            "Kiinteistöt & Asuntosijoittaminen", 
+            "Kryptovaluutat & Korkean riskin kohteet",
+            "Vertaislainat (Peer-to-Peer)"
+        ]
     )
     
     if sijoitus_vaihtoehto == "Osakkeet & Indeksirahastot / ETF:ät":
         st.write("""
-        * **Indeksirahastot & ETF:ät:** Hajautettu sijoituspaketti, joka seuraa laajoja markkinoita (kuten maailma-indeksiä). Sopii pitkäjänteiselle sijoittajalle matalien kulujen ja helpon hajautuksen ansiosta.
-        * **Suorat osakkeet:** Yksittäisen yrityksen omistusosuus. Vaatii syvempää perehtymistä ja kantaa suurempaa hajautusriskiä.
+        * **Indeksirahastot & ETF:ät:** Hajautettu sijoituspaketti, joka seuraa laajoja markkinoita (esim. S&P 500 tai MSCI World). Sopii pitkäjänteiselle sijoittajalle matalien kulujen ja helpon hajautuksen ansiosta.
+        * **Suorat osakkeet:** Yksittäisen yrityksen omistusosuus. Vaatii syvempää perehtymistä ja kantaa suurempaa hajautusriskiä, mutta voi tarjota paremman tuoton onnistuessaan.
+        """)
+    elif sijoitus_vaihtoehto == "Korkosijoitukset (Säästötilit / Valtiolainat)":
+        st.write("""
+        * **Korkosijoitukset:** Matalamman riskin vaihtoehto, kuten määräaikaistilit, säästötilit tai valtion joukkovelkakirjalainat. Tuotto-odotus on maltillisempi, mutta suojaa pääomaa epävarmoina aikoina.
+        """)
+    elif sijoitus_vaihtoehto == "Kiinteistöt & Asuntosijoittaminen":
+        st.write("""
+        * **Asuntosijoittaminen:** Vuokratuottoa ja mahdollista arvonnousua. Vaatii usein isomman alkupääoman tai velkavipua (asuntolainaa), ja siihen liittyy vuokralaisriskejä sekä yhtiövastikkeiden nousupaineita.
+        * **Kiinteistörahastot (REITit):** Pienemmällä summalla hajautetusti kiinteistöihin pörssin kautta.
+        """)
+    elif sijoitus_vaihtoehto == "Kryptovaluutat & Korkean riskin kohteet":
+        st.write("""
+        * **Kryptovaluutat (esim. Bitcoin, Ethereum):** Erittäin korkean volatiliteetin ja riskin sijoituskohteet. Arvo voi nousta tai laskea rajusti lyhyessä ajassa. Suositellaan vain pieneksi mausteeksi salkkuun (esim. 1–5%).
         """)
     else:
         st.write("""
-        * **Korkosijoitukset:** Matalamman riskin vaihtoehto, kuten säästötilit tai valtionlainat. Tuotto-odotus on maltillisempi, mutta sopii hyvin lyhyemmän aikavälin säästöihin.
+        * **Vertaislainat:** Lainaat rahaa kuluttajille tai yrityksille alustojen kautta. Korkeat korot kompensoivat luottotappioriskiä; vaatii tarkkaa hajauttamista useisiin lainoihin.
         """)
 
 
@@ -143,7 +218,6 @@ with tab4:
         ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suuri perhe (5+ hlö)"]
     )
     
-    # Skaalataan arviota talouden koon mukaan
     kerroin = {"1 henkilö": 1.0, "2 henkilöä": 1.8, "Perhe (3-4 hlö)": 2.8, "Suuri perhe (5+ hlö)": 3.8}[talouden_koko]
     arvioitu_viikkobudjetti = int(70 * kerroin)
     
