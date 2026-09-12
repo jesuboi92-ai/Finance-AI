@@ -1,7 +1,8 @@
-import pandas as pd
+import json
+import pandas as pds
 import pypdf
+import requests
 import streamlit as st
-from openai import OpenAI
 
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
@@ -66,6 +67,25 @@ else:
 
 is_pro_unlocked = st.session_state.is_pro
 
+# Apufunktio OpenAI-kutsuille requests-kirjaston kautta (välttää ASCII-koodausvirheet)
+def call_openai_api(api_key, prompt_text, model="gpt-3.5-turbo"):
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json; charset=utf-8"
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt_text}]
+    }
+    # Pakotetaan pyyntö ja koodaus UTF-8:ksi
+    response = requests.post(url, headers=headers, data=json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+    if response.status_code == 200:
+        res_json = response.json()
+        return res_json["choices"][0]["message"]["content"]
+    else:
+        raise Exception(f"API-virhe ({response.status_code}): {response.text}")
+
 # Paasovelluksen valilehdet
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
@@ -79,7 +99,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
 )
 
 if "custom_products" not in st.session_state:
-    st.session_state.custom_products = pd.DataFrame(
+    st.session_state.custom_products = pds.DataFrame(
         [
             {"Poista": False, "Tuote / Pakkaus": "Kanafilee (400g)", "Kauppa": "Prisma", "Hinta (€)": 4.50},
             {"Poista": False, "Tuote / Pakkaus": "Maito (1l)", "Kauppa": "S-Market", "Hinta (€)": 1.19},
@@ -108,14 +128,13 @@ with tab1:
                         pdf_text += page.extract_text() or ""
                     
                     with st.spinner("Tekoaly lukee palkkatietoja PDF:sta..."):
-                        client = OpenAI(api_key=api_key)
                         prompt = (
                             "Etsi seuraavasta palkkalaskelman tekstista NETTO-palkka (kateen jaava summa) "
                             "seka BRUTTO-palkka. Palauta tulos muodossa: Netto: [numero], Brutto: [numero].\n\n"
                             f"Teksti:\n{pdf_text[:3000]}"
                         )
-                        resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
-                        st.info(f"AI:n loytamat tiedot tekstista: {resp.choices[0].message.content}")
+                        result_text = call_openai_api(api_key, prompt)
+                        st.info(f"AI:n loytamat tiedot tekstista: {result_text}")
                 except Exception as err:
                     st.error(f"Virhe tiedoston kasittelyssa: {err}")
     else:
@@ -171,9 +190,8 @@ with tab2:
         if st.button("Pyyda Pro AI-analyysi"):
             if api_key:
                 try:
-                    client = OpenAI(api_key=api_key)
-                    resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}"}])
-                    st.markdown(resp.choices[0].message.content)
+                    result_text = call_openai_api(api_key, f"Analysoi kriittisesti sijoitusstrategiaa: {sijoitus_kohde_kuvaus}")
+                    st.markdown(result_text)
                 except Exception as err:
                     st.error(f"Virhe tekoalypyynnossa: {err}")
             else:
@@ -191,9 +209,8 @@ with tab3:
         if st.button("Hae Pro-palaute viikon kulutuksesta"):
             if api_key:
                 try:
-                    client = OpenAI(api_key=api_key)
-                    resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla."}])
-                    st.markdown(resp.choices[0].message.content)
+                    result_text = call_openai_api(api_key, f"Arvioi viikkobudjettia (tavoite {weekly_food_target}, toteutunut {actual_food_spent}) huumorilla.")
+                    st.markdown(result_text)
                 except Exception as err:
                     st.error(f"Virhe tekoalypyynnossa: {err}")
             else:
@@ -307,25 +324,18 @@ with tab6:
                 st.warning("Valitse vahintaan yksi kauppa.")
             else:
                 stores_str = ", ".join(stores_to_compare)
-                # Muutetaan prompt täysin ASCII-yhteensopivaksi varmuuden vuoksi, jotta python-requests ei kaadu ääkkösiin
-                clean_allergies = allergies_input.encode('ascii', 'ignore').decode('ascii')
                 prompt = (
                     f"Suunnittele {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, kaloritavoite per henkilo {daily_calories} kcal/pva, "
-                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{clean_allergies}'. "
+                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{allergies_input}'. "
                     f"Write output in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja maarayksikoilla "
                     f"seka Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava maara, {stores_str}]. "
                     f"Laske taulukon loppuun YHTEENSA euroina -summat jokaiselle kaupalle."
                 )
                 with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
                     try:
-                        client = OpenAI(api_key=api_key)
-                        resp = client.chat.completions.create(
-                            model="gpt-3.5-turbo", 
-                            messages=[{"role": "user", "content": prompt}]
-                        )
-                        raw_content = resp.choices[0].message.content
-                        st.markdown(raw_content)
+                        result_text = call_openai_api(api_key, prompt)
+                        st.markdown(result_text)
                     except Exception as err:
                         st.error(f"Virhe tekoalypyynnossa: {err}")
     else:
