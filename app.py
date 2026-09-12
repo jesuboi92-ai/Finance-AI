@@ -46,14 +46,15 @@ else:
     st.sidebar.markdown("- 🔥 **49,00 € / vuosi** *(säästä 17%)*")
     
     with st.sidebar.expander("🔑 Minulla on jo aktivointikoodi", expanded=True):
-        entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", key="entered_pin")
+        # type="password" piilottaa koodin ja lisää silmä-kuvakkeen tarkistamista varten
+        entered_code = st.text_input("Syötä lisenssikoodi / PIN", value="", type="password", key="entered_pin")
         if st.button("Aktivoi Pro"):
             if entered_code.strip() == "salasana123": 
                 st.session_state.is_pro = True
                 st.success("Pro aktivoitu onnistuneesti!")
                 st.rerun()
             else:
-                st.error(f"Virheellinen koodi ('{entered_code}'). Kokeile salasana123")
+                st.error("Virheellinen koodi. Kokeile salasana123")
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("💡 *Haluatko ostaa Pro-oikeuden? Ota yhteys ylläpitäjään (esim. MobilePay / verkkokauppalinkki).*")
@@ -211,7 +212,6 @@ with tab5:
 
     family_size_basic = st.selectbox("Valitse talouden koko", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)"], key="t5_family")
     
-    # Määritetään suuntaa-antavat suositukset talouden koon mukaan
     if family_size_basic == "1 henkilö":
         suf_suositus = "200 – 260 € / kk (~50–65 € / vko)"
         kerta_ostos = "Noin 40–50 € / kauppareissu"
