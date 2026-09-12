@@ -1,6 +1,3 @@
-import io
-import os
-import sys
 import pandas as pd
 import pypdf
 import streamlit as st
@@ -281,48 +278,54 @@ with tab6:
     if is_pro_unlocked:
         col_a, col_b = st.columns(2)
         with col_a:
-            diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
+            diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyoja", "Kasvissyoja", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
             daily_calories = st.number_input("Tarkka kaloritavoite (kcal)", min_value=1200, max_value=5000, value=2000, step=50, key="t6_cal")
-            days_count = st.slider("Ajanjakso (päivää)", min_value=1, max_value=7, value=7, key="t6_days")
+            days_count = st.slider("Ajanjakso (paivaa)", min_value=1, max_value=7, value=7, key="t6_days")
         with col_b:
             goal_choice = st.selectbox(
                 "Tavoite", 
                 [
                     "Terveellinen perusruokavalio",
-                    "📉 Laihdutus / Painonhallinta (Kalorivaje)", 
-                    "💪 Lean Bulk (Lihasmassan kasvu)",
-                    "🔥 Lean Cut (Kiristely)",
-                    "🏷️ Tarjousten hyödyntäminen / Halvin"
+                    "Laihdutus / Painonhallinta (Kalorivaje)", 
+                    "Lean Bulk (Lihasmassan kasvu)",
+                    "Lean Cut (Kiristely)",
+                    "Tarjousten hyodyntaminen / Halvin"
                 ],
                 key="t6_goal"
             )
-            meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
+            meals_per_day = st.slider("Aterioita / paiva", min_value=1, max_value=6, value=3, key="t6_meals")
 
-        family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suurperhe (5+ hlö)"], key="t6_family")
+        family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilo", "2 henkiloa", "Perhe (3-4 hlo)", "Suurperhe (5+ hlo)"], key="t6_family")
 
-        allergies_input = st.text_input("Allergiat / Vältettävät aineet", value="", key="t6_allergies")
+        allergies_input = st.text_input("Allergiat / Valtettavat aineet", value="", key="t6_allergies")
         stores_to_compare = st.multiselect("Valitse kaupat vertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
 
         if st.button("Generoi Pro-ruokalista ja hintavertailutaulukko"):
             if not api_key:
-                st.error("⚠️ Syötä OpenAI API-avain sivupalkin 'OpenAI API-asetukset' -laatikkoon ennen tekoälypyynnön tekemistä.")
+                st.error("⚠️ Syota OpenAI API-avain sivupalkin asetuksiin ennen tekoalypyyntoa.")
             elif len(stores_to_compare) < 1:
-                st.warning("Valitse vähintään yksi kauppa.")
+                st.warning("Valitse vahintaan yksi kauppa.")
             else:
                 stores_str = ", ".join(stores_to_compare)
+                # Muutetaan prompt täysin ASCII-yhteensopivaksi varmuuden vuoksi, jotta python-requests ei kaadu ääkkösiin
+                clean_allergies = allergies_input.encode('ascii', 'ignore').decode('ascii')
                 prompt = (
                     f"Suunnittele {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, kaloritavoite per henkilo {daily_calories} kcal/pva, "
-                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{allergies_input}'. "
-                    f"Write output in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja maarayksikoilla (esim. grammoina tai paketteina) "
-                    f"seka Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava maarat, {stores_str}]. "
+                    f"tavoite {goal_choice}, aterioita {meals_per_day} kpl/pva, allergiat: '{clean_allergies}'. "
+                    f"Write output in Finnish. Luo tarkka ostoslista koko taloudelle oikeilla pakkaus- ja maarayksikoilla "
+                    f"seka Markdown-taulukko, jossa on sarakkeina [Tuote, Tarvittava maara, {stores_str}]. "
                     f"Laske taulukon loppuun YHTEENSA euroina -summat jokaiselle kaupalle."
                 )
                 with st.spinner("Luodaan Pro-ruokalistaa ja hintavertailua..."):
                     try:
                         client = OpenAI(api_key=api_key)
-                        resp = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
-                        st.markdown(resp.choices[0].message.content.encode('utf-8', errors='ignore').decode('utf-8'))
+                        resp = client.chat.completions.create(
+                            model="gpt-3.5-turbo", 
+                            messages=[{"role": "user", "content": prompt}]
+                        )
+                        raw_content = resp.choices[0].message.content
+                        st.markdown(raw_content)
                     except Exception as err:
                         st.error(f"Virhe tekoalypyynnossa: {err}")
     else:
