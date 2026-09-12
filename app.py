@@ -6,11 +6,6 @@ import pypdf
 import streamlit as st
 from openai import OpenAI
 
-# Pakotetaan UTF-8 koodaus konsoleille ja I/O-virtoihin, jotta ascii-virheitä ei tule
-os.environ["PYTHONIOENCODING"] = "utf-8"
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
-
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
 )
@@ -315,7 +310,6 @@ with tab6:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
                 stores_str = ", ".join(stores_to_compare)
-                # Puhtaan ASCII-yhteensopivan tekstin varmistaminen promptille
                 prompt = (
                     f"Suunnittele {days_count} paivan ruokalista taloudelle, jonka koko on '{family_size_pro}': "
                     f"ruokavalio {diet_choice}, kaloritavoite per henkilo {daily_calories} kcal/pva, "
