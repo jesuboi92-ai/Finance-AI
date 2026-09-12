@@ -75,7 +75,7 @@ else:
 
 is_pro_unlocked = st.session_state.is_pro
 
-# Apufunktio OpenAI-kutsuille (lisätty max_tokens, jotta vastaukset eivät katkea kesken)
+# Apufunktio OpenAI-kutsuille
 def call_openai_api(key, prompt_text, model="gpt-3.5-turbo"):
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
@@ -334,16 +334,19 @@ with tab6:
             else:
                 stores_str = ", ".join(stores_to_compare)
                 prompt = (
-                    f"Suunnittele erittäin tarkka {days_count} päivän ruokalista taloudelle, jonka koko on '{family_size_pro}': "
-                    f"ruokavalio {diet_choice}, tavoite {goal_choice}, ateriat {meals_per_day} kpl/pvä, "
-                    f"käyttäjän paino {body_weight} kg ja pituus {body_height} cm, allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
-                    f"VAATIMUKSET VASTAUKSELLE:\n"
-                    f"1. **Päiväkohtaiset kalorit ja makrot**: Jokaiselle päivälle (Päivä 1 - Päivä {days_count}) TÄYTYY MÄÄRITTÄÄ TARKASTI arvioidut kalorit ja makroravinteet (Proteiinit 20-25%, Hiilihydraatit 45-50%, Rasvat 30-35%).\n"
-                    f"2. **Ateria- ja päiväkohtaiset hinnat**: Ilmoita jokaiselle aterialle arvioitu hinta sekä koko päivän yhteishinta.\n"
-                    f"3. **Vaihtuvat ateriat**: Jokaisella päivällä TÄYTYY OLLA ERI AIKAAN ERI ATERIAT (esim. aamiainen, välipala, lounas, välipala, päivällinen, iltapala) monipuolisella kaavalla.\n"
-                    f"4. **Täydellinen ostoslista**: Listaa KAIKKI ruokalistassa käytettävät raaka-aineet todellisissa myyntipakkauksissa.\n"
-                    f"5. **Kattava hintavertailutaulukko**: Tee Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä viikolle, {stores_str}]. Varmista, että jokaiselle tuotteelle löytyy hinta jokaiseen valittuun kauppaan.\n"
-                    f"6. **Yhteenveto**: Laske taulukon loppuun rivit: **Keskimääräinen hinta per päivä**, **Keskimääräinen hinta per ateria** sekä **YHTEENSA (€) koko viikon ostoksille** vierekkäin jokaiselle vertailukaupalle."
+                    f"Laadi kattava ja täydellinen {days_count} päivän ruokalista taloudelle ({family_size_pro}). "
+                    f"Ruokavalio: {diet_choice}, Tavoite: {goal_choice}, Aterioita päivässä: {meals_per_day}, "
+                    f"Paino: {body_weight} kg, Pituus: {body_height} cm, Allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
+                    f"VAATIMUKSET TARKALLE RAKENTEELLE:\n"
+                    f"1. **Jokainen päivä erikseen**: Kirjoita selkeästi jokainen päivä alkaen Päivä 1 aina Päivä {days_count} asti. "
+                    f"Jokaiselle päivälle on esitettävä:\n"
+                    f"   - Arvioidut kalorit ja makroravinteet (Proteiinit 20-25%, Hiilihydraatit 45-50%, Rasvat 30-35%).\n"
+                    f"   - Ateriat listattuna nimineen sekä kunkin aterian arvioitu hinta (€).\n"
+                    f"   - Päivän yhteishinta (€).\n"
+                    f"2. **Monipuoliset ateriat**: Varmista, että jokaisella päivällä on omat vaihtuvat ateriansa (esim. aamiainen, välipala, lounas, välipala, päivällinen, iltapala), eikä samaa listaa toisteta sellaisenaan.\n"
+                    f"3. **Ostoslista myyntipakkauksina**: Muodosta tuotelistauksessa todelliset kaupan myyntipakkaukset (esim. 'Kananmunat 10 kpl' tai 'Kanafilee 400g'), äläkä ilmoita raaka-aineita yksittäisinä kappaleina (vältä merkintöjä kuten '1 kpl kananmuna').\n"
+                    f"4. **Hintavertailutaulukko**: Luo Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä, {stores_str}]. Hinnoittele jokainen tuote selkeästi ilman sotkuisia virheitä.\n"
+                    f"5. **Loppusummat**: Laske taulukon välittömään alapuolelle selkeä yhteenvetorivi tai loppusumma (€) **jokaiselle vertailukaupalle erikseen** koko {days_count} päivän ostoskorista, jotta hintavertailu on helppoa."
                 )
                 with st.spinner("Luodaan optimoitua Pro-ruokalistaa ja hintavertailua..."):
                     try:
