@@ -7,12 +7,14 @@ from PIL import Image
 import streamlit as st
 from openai import OpenAI
 
-# Pakotetaan oletuskoodaukseksi UTF-8, jotta skandinaaviset merkit eivät aiheuta virhettä
-if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+# Pakotetaan UTF-8 merkistökoodaus käyttöön skandinaavisten kirjainten virheiden välttämiseksi
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 st.set_page_config(
     page_title="Talous-AI & Vaurastumisassistentti", page_icon="📈", layout="centered"
