@@ -13,7 +13,7 @@ st.set_page_config(
 st.title("📈 Talous-AI & Vaurastumisassistentti (Ultimate Pro)")
 st.write(
     "Kaikki toiminnot samassa: Palkkalaskelman PDF-luku, tulot ja menot, sijoituslaskurit & kriittinen AI, "
-    "Smart Budget, älykäs kuvaskanneri, perusruokabudjetti sekä tarkka kauppakohtainen ruokakorivertailija."
+    "Smart Budget, älykäs kuvaskanneri, perusruokabudjetti sekä tarkka tuote- ja kauppakohtainen hintavertailija."
 )
 
 # Sivupalkki asetuksille
@@ -31,7 +31,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         "💡 Smart Budget", 
         "🏷️ Hinnat & Kuittiskanneri",
         "🛒 Perusruokabudjetti",
-        "🍳 Ruokalista & Kauppojen Ostoskorivertailu"
+        "🍳 Ruokalista & Kauppojen Hintavertailu"
     ]
 )
 
@@ -154,7 +154,7 @@ with tab2:
 
     st.info(
         f"📊 **Laskelman tulos ({sijoitus_aika_vuotta} vuoden jälkeen):**\n\n"
-        f"- Sijoitettu pääoma yhteensa: **{sijoitettu_paoma_yhteensa:,.0f} €**\n"
+        f"- Sijoitettu pääoma yhteensä: **{sijoitettu_paoma_yhteensa:,.0f} €**\n"
         f"- Arvioitu voitto / tuotto: **{tuotto_yhteensa:,.0f} €**\n"
         f"- **Salkun arvo yhteensä:** **{kokonaissumma:,.0f} €**"
     )
@@ -333,16 +333,16 @@ with tab5:
             st.markdown(resp.choices[0].message.content)
 
 
-# --- TAB 6: RUOKALISTA & KAUPPOJEN OSTOSKORIVERTAILU ---
+# --- TAB 6: RUOKALISTA & KAUPPOJEN HINTAVERTAILU ---
 with tab6:
-    st.subheader("🍳 Tarkasti kaloroitu ruokalista & Kauppojen ostoskorivertailu")
-    st.write("Suunnittele ruokalista halutulla kaloritavoitteella ja vertaile **koko kauppareissun/pakkausten yhteishintoja** eri kaupoissa.")
+    st.subheader("🍳 Tarkasti kaloroitu ruokalista & Kauppojen vierekkäinen hintavertailu")
+    st.write("Suunnittele ruokalista tarkalla kaloritavoitteella ja katso **suora tuotekohtainen hintavertailu valituissa kaupoissa sekä loppusummat**.")
 
     col_a, col_b = st.columns(2)
     with col_a:
-        diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"])
-        daily_calories = st.number_input("Päivittäinen tarkka kaloritavoite (kcal)", min_value=1200, max_value=5000, value=2000, step=50)
-        days_count = st.slider("Suunniteltava ajanjakso (päivää)", min_value=1, max_value=7, value=7)
+        diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
+        daily_calories = st.number_input("Päivittäinen tarkka kaloritavoite (kcal)", min_value=1200, max_value=5000, value=2000, step=50, key="t6_cal")
+        days_count = st.slider("Suunniteltava ajanjakso (päivää)", min_value=1, max_value=7, value=7, key="t6_days")
     with col_b:
         goal_choice = st.selectbox(
             "Optio / Tavoite", 
@@ -353,31 +353,36 @@ with tab6:
                 "🔥 Lean Cut (Kiristely)",
                 "🏷️ Tarjousten hyödyntäminen / Halvin mahdollinen",
                 "Proteiinipitoinen / Fitness"
-            ]
+            ],
+            key="t6_goal"
         )
-        meals_per_day = st.slider("Aterioiden määrä per päivä", min_value=1, max_value=6, value=3)
+        meals_per_day = st.slider("Aterioiden määrä per päivä", min_value=1, max_value=6, value=3, key="t6_meals")
 
-    allergies_input = st.text_input("Erityisallergiat tai vältettävät aineet", value="")
-    stores_to_compare = st.multiselect("Valitse kaupat hintavertailuun", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"])
+    allergies_input = st.text_input("Erityisallergiat tai vältettävät aineet", value="", key="t6_allergies")
+    stores_to_compare = st.multiselect("Valitse vähintään 2 kauppaa hintavertailuun vieri viereen", ["Lidl", "S-Market", "Prisma", "K-Market", "K-Citymarket"], default=["Lidl", "Prisma", "S-Market"], key="t6_stores")
 
-    if st.button("Generoi täsmällinen ruokalista ja koko ostoskorin hintavertailu"):
+    if st.button("Generoi ruokalista ja tarkka kauppakohtainen hintavertailutaulukko"):
         if not api_key:
             st.warning("Syötä sivupalkkiin OpenAI API-avain.")
+        elif len(stores_to_compare) < 1:
+            st.warning("Valitse vähintään yksi kauppa vertailuun.")
         else:
             client = OpenAI(api_key=api_key)
+            stores_str = ", ".join(stores_to_compare)
             prompt = (
                 f"Olet tarkka ravitsemus- ja talousasiantuntija. Suunnittele {days_count} päivän ruokalista seuraavilla ehdoilla:\n"
                 f"- Ruokavalio: {diet_choice}\n"
-                f"- TARKKA PÄIVITTÄINEN KALORITAVOITE: Täsmälleen {daily_calories} kcal per päivä (varmista että päivittäiset kalorit vastaavat tätä tarkasti, älä alita tai ylitä merkittävästi).\n"
+                f"- TARKKA PÄIVITTÄINEN KALORITAVOITE: Täsmälleen {daily_calories} kcal per päivä (varmista että päivittäiset kalorit vastaavat tätä tarkasti).\n"
                 f"- Tavoite / Optio: {goal_choice}\n"
                 f"- Aterioita per päivä: {meals_per_day}\n"
                 f"- Vältettävät allergiat/aineet: '{allergies_input}'\n\n"
                 f"VAATIMUKSET VASTAUKSELLE:\n"
-                f"1. Esitä ruokalista päiväkohtaisesti siten, että jokaisen päivän kohdalla näkyy tarkat kalorit (esim. Yhteensä: {daily_calories} kcal).\n"
-                f"2. Tee kattava ostoslista tarvittavista raaka-aineista koko ajanjaksolle (pakkauskoot huomioiden).\n"
-                f"3. Rakenna selkeä taulukko, jossa vertailet **koko kauppareissun / kaikkien tarvittavien pakkausten yhteishintaa** valituissa kaupoissa: {', '.join(stores_to_compare)}.\n"
-                f"Älä laske pelkkien annosten hintoja, vaan näytä mitä koko ostoskori maksaa kokonaisuudessaan kyseisessä kaupassa ja mikä kaupoista on halvin."
+                f"1. Esitä päiväkohtainen ruokalista niin, että jokaisen päivän kalorit täsmäävät tavoitteeseen ({daily_calories} kcal).\n"
+                f"2. Luo **tarkka ostoslista**, jossa tuotteiden tarvittava määrä on ilmoitettu selkeästi oikeassa yksikössä (esim. grammoina, kiloina tai kappaleina – älä sekoita 'pakkauskokoja' harhaanjohtavasti irrallisiin tuotteisiin, kuten banaaneihin, vaan ilmoita tarvittava kokonaismäärä esim. 'Banaani: 8 kpl').\n"
+                f"3. Rakenna **Markdown-taulukko**, jossa ovat sarakkeina: [Tuote, Tarvittava määrä, {stores_str} (hinnat kyseisessä kaupoissa ostoskorille)]. "
+                f"Jokaiselle tuotteelle on oltava hinta jokaisessa valitussa kaupassa.\n"
+                f"4. Taulukon **viimeiselle riville** tai aivan taulukon alapuolelle lasket ehdottomasti **YHTEENSÄ (€)** -loppusummat jokaiselle kaupalle erikseen, jotta näkee suoraan mikä kaupoista on halvin."
             )
-            with st.spinner("Lasketaan kaloreita ja vertaillaan kauppojen ostoskoreja..."):
+            with st.spinner("Lasketaan kaloreita ja rakennetaan tuotekohtaista kauppavertailua..."):
                 resp = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
                 st.markdown(resp.choices[0].message.content)
