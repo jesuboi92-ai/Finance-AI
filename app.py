@@ -305,8 +305,8 @@ with tab6:
         with col_a:
             diet_choice = st.selectbox("Valitse ruokavalio", ["Sekasyöjä", "Kasvissyöjä", "Vegaani", "Gluteeniton", "Laktoositon"], key="t6_diet")
             days_count = st.slider("Ajanjakso (päivää)", min_value=1, max_value=7, value=7, key="t6_days")
-            body_weight = st.number_input("Paino (kg, vapaaehtoinen)", min_value=30.0, max_value=250.0, value=75.0, step=0.5, key="t6_weight")
-            body_height = st.number_input("Pituus (cm, vapaaehtoinen)", min_value=120, max_value=230, value=175, step=1, key="t6_height")
+            body_weight = st.number_input("Paino (kg)", min_value=30.0, max_value=250.0, value=75.0, step=0.5, key="t6_weight")
+            body_height = st.number_input("Pituus (cm)", min_value=120, max_value=230, value=175, step=1, key="t6_height")
         with col_b:
             goal_choice = st.selectbox(
                 "Tavoite", 
@@ -320,7 +320,17 @@ with tab6:
                 key="t6_goal"
             )
             meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
-            target_calories = st.number_input("Omat tavoitekalorit (kcal / päivä, 0 = automaattinen)", min_value=0, max_value=5000, value=2200, step=50, key="t6_target_cals")
+            target_calories = st.number_input("Omat tavoitekalorit (kcal / päivä)", min_value=0, max_value=5000, value=2200, step=50, key="t6_target_cals")
+
+        # UUDET MAKROTAVOITTEET KÄYTTÄJÄLLE
+        st.markdown("#### 🎯 Päivittäiset makrotavoitteet (grammoina)")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            target_protein = st.number_input("Proteiini (g)", min_value=0, max_value=400, value=150, step=5, key="t6_target_protein")
+        with col_m2:
+            target_carbs = st.number_input("Hiilihydraatit (g)", min_value=0, max_value=600, value=220, step=5, key="t6_target_carbs")
+        with col_m3:
+            target_fat = st.number_input("Rasva (g)", min_value=0, max_value=300, value=75, step=5, key="t6_target_fat")
 
         family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suurperhe (5+ hlö)"], key="t6_family")
 
@@ -334,17 +344,19 @@ with tab6:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
                 stores_str = ", ".join(stores_to_compare)
-                cals_instruction = f"Tavoitekalorit päivässä on asetettu arvoon: {target_calories} kcal." if target_calories > 0 else "Laske arvioidut sopivat tavoitekalorit annetun painon, pituuden ja tavoitteen mukaan."
                 
                 prompt = (
                     f"Laadi kattava ja täydellinen {days_count} päivän ruokalista taloudelle ({family_size_pro}). "
                     f"Ruokavalio: {diet_choice}, Tavoite: {goal_choice}, Aterioita päivässä: {meals_per_day}, "
-                    f"Paino: {body_weight} kg, Pituus: {body_height} cm, {cals_instruction} Allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
+                    f"Paino: {body_weight} kg, Pituus: {body_height} cm. "
+                    f"TARKAT PÄIVITTÄISET MAKROTAVOITTEET JOITA TULEE NOUDATTAA: "
+                    f"Kalorit: {target_calories} kcal, Proteiini: {target_protein}g, Hiilihydraatit: {target_carbs}g, Rasva: {target_fat}g. "
+                    f"Allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
                     f"VAATIMUKSET TARKALLE RAKENTEELLE:\n"
                     f"1. **Jokainen päivä erikseen**: Kirjoita selkeästi jokainen päivä alkaen Päivä 1 aina Päivä {days_count} asti. "
-                    f"Jokaiselle päivälle on esitettävä:\n"
+                    f"Jokaiselle päivälle on esitettävä toteutuvat kalorit ja makrot (verraten annettuihin tavoitteisiin):\n"
                     f"   - Arvioidut kokonaiskalorit (kcal) ja makroravinteet (Proteiinit, Hiilihydraatit, Rasvat grammoina ja prosenteina).\n"
-                    f"   - Ateriat listattuna nimineen, arvioidut kalorit per ateria sekä kunkin aterian arvioitu hinta (€).\n"
+                    f"   - Ateriat listattuna nimineen, arvioidut kalorit ja makrot per ateria sekä kunkin aterian arvioitu hinta (€).\n"
                     f"   - Päivän yhteishinta (€).\n"
                     f"2. **Esimerkkiruoat**: Sisällytä ruokalistalle mukaan esimerkkiruokia kuten Kalafilee, peruna ja vihanneksia, Broilerinfileet ja perunamuusi, Kasviswok ja nuudelit, sekä Puolukkapuuro.\n"
                     f"3. **Monipuoliset ateriat**: Varmista, että jokaisella päivällä on omat vaihtuvat ateriansa, eikä samaa listaa toisteta sellaisenaan.\n"
@@ -352,7 +364,7 @@ with tab6:
                     f"5. **Hintavertailutaulukko**: Luo laaja Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä, {stores_str}]. Sisältaen mm. seuraavat tuotteet vertailussa: Jogurtti (500g), Kanafilee (500g), Kana-caesarsalaatti, Kalafilee (400g), Proteiinipatukka (1 kpl), Avokado (1 kpl), Kalkkunaleike (200g), Hummus (200g), Kasviswok (400g), Bulgur (500g), Tonnikalasalaatti, Broilerinfilee (500g), Quinoa (400g), Puuro (1kg), Maustamaton jogurtti (500g), Kananmuna (10 kpl), Riisikakut (150g), Kaalit (1 kpl), Paprika (1 kpl), Ruisleipä (1 kpl), Marjat (500g) ja Puolukkapuuro. Hinnoittele jokainen tuote selkeästi.\n"
                     f"6. **Loppusummat**: Laske taulukon välittömään alapuolelle selkeä yhteenvetorivi tai loppusumma (€) **jokaiselle vertailukaupalle erikseen** koko {days_count} päivän ostoskorista, jotta hintavertailu on helppoa."
                 )
-                with st.spinner("Luodaan optimoitua Pro-ruokalistaa, kaloreja ja hintavertailua..."):
+                with st.spinner("Luodaan optimoitua Pro-ruokalistaa, makroja ja hintavertailua..."):
                     try:
                         result_text = call_openai_api(api_key, prompt)
                         st.markdown(result_text)
