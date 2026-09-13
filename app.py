@@ -320,6 +320,7 @@ with tab6:
                 key="t6_goal"
             )
             meals_per_day = st.slider("Aterioita / päivä", min_value=1, max_value=6, value=3, key="t6_meals")
+            target_calories = st.number_input("Omat tavoitekalorit (kcal / päivä, 0 = automaattinen)", min_value=0, max_value=5000, value=2200, step=50, key="t6_target_cals")
 
         family_size_pro = st.selectbox("Talouden koko (kenelle ruuat mitoitetaan)", ["1 henkilö", "2 henkilöä", "Perhe (3-4 hlö)", "Suurperhe (5+ hlö)"], key="t6_family")
 
@@ -333,22 +334,25 @@ with tab6:
                 st.warning("Valitse vähintään yksi kauppa.")
             else:
                 stores_str = ", ".join(stores_to_compare)
+                cals_instruction = f"Tavoitekalorit päivässä on asetettu arvoon: {target_calories} kcal." if target_calories > 0 else "Laske arvioidut sopivat tavoitekalorit annetun painon, pituuden ja tavoitteen mukaan."
+                
                 prompt = (
                     f"Laadi kattava ja täydellinen {days_count} päivän ruokalista taloudelle ({family_size_pro}). "
                     f"Ruokavalio: {diet_choice}, Tavoite: {goal_choice}, Aterioita päivässä: {meals_per_day}, "
-                    f"Paino: {body_weight} kg, Pituus: {body_height} cm, Allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
+                    f"Paino: {body_weight} kg, Pituus: {body_height} cm, {cals_instruction} Allergiat: '{allergies_input}'. Kirjoita vastaus suomeksi.\n\n"
                     f"VAATIMUKSET TARKALLE RAKENTEELLE:\n"
                     f"1. **Jokainen päivä erikseen**: Kirjoita selkeästi jokainen päivä alkaen Päivä 1 aina Päivä {days_count} asti. "
                     f"Jokaiselle päivälle on esitettävä:\n"
-                    f"   - Arvioidut kalorit ja makroravinteet (Proteiinit 20-25%, Hiilihydraatit 45-50%, Rasvat 30-35%).\n"
-                    f"   - Ateriat listattuna nimineen sekä kunkin aterian arvioitu hinta (€).\n"
+                    f"   - Arvioidut kokonaiskalorit (kcal) ja makroravinteet (Proteiinit, Hiilihydraatit, Rasvat grammoina ja prosenteina).\n"
+                    f"   - Ateriat listattuna nimineen, arvioidut kalorit per ateria sekä kunkin aterian arvioitu hinta (€).\n"
                     f"   - Päivän yhteishinta (€).\n"
-                    f"2. **Monipuoliset ateriat**: Varmista, että jokaisella päivällä on omat vaihtuvat ateriansa (esim. aamiainen, välipala, lounas, välipala, päivällinen, iltapala), eikä samaa listaa toisteta sellaisenaan.\n"
-                    f"3. **Ostoslista myyntipakkauksina**: Muodosta tuotelistauksessa todelliset kaupan myyntipakkaukset (esim. 'Kananmunat 10 kpl' tai 'Kanafilee 400g'), äläkä ilmoita raaka-aineita yksittäisinä kappaleina (vältä merkintöjä kuten '1 kpl kananmuna').\n"
-                    f"4. **Hintavertailutaulukko**: Luo Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä, {stores_str}]. Hinnoittele jokainen tuote selkeästi ilman sotkuisia virheitä.\n"
-                    f"5. **Loppusummat**: Laske taulukon välittömään alapuolelle selkeä yhteenvetorivi tai loppusumma (€) **jokaiselle vertailukaupalle erikseen** koko {days_count} päivän ostoskorista, jotta hintavertailu on helppoa."
+                    f"2. **Esimerkkiruoat**: Sisällytä ruokalistalle mukaan esimerkkiruokia kuten Kalafilee, peruna ja vihanneksia, Broilerinfileet ja perunamuusi, Kasviswok ja nuudelit, sekä Puolukkapuuro.\n"
+                    f"3. **Monipuoliset ateriat**: Varmista, että jokaisella päivällä on omat vaihtuvat ateriansa, eikä samaa listaa toisteta sellaisenaan.\n"
+                    f"4. **Ostoslista myyntipakkauksina**: Muodosta tuotelistauksessa todelliset kaupan myyntipakkaukset (esim. 'Kananmunat 10 kpl' tai 'Kanafilee 400g'), äläkä ilmoita raaka-aineita yksittäisinä kappaleina.\n"
+                    f"5. **Hintavertailutaulukko**: Luo laaja Markdown-taulukko sarakkeilla: [Tuote / Pakkaus, Tarvittava määrä, {stores_str}]. Sisältaen mm. seuraavat tuotteet vertailussa: Jogurtti (500g), Kanafilee (500g), Kana-caesarsalaatti, Kalafilee (400g), Proteiinipatukka (1 kpl), Avokado (1 kpl), Kalkkunaleike (200g), Hummus (200g), Kasviswok (400g), Bulgur (500g), Tonnikalasalaatti, Broilerinfilee (500g), Quinoa (400g), Puuro (1kg), Maustamaton jogurtti (500g), Kananmuna (10 kpl), Riisikakut (150g), Kaalit (1 kpl), Paprika (1 kpl), Ruisleipä (1 kpl), Marjat (500g) ja Puolukkapuuro. Hinnoittele jokainen tuote selkeästi.\n"
+                    f"6. **Loppusummat**: Laske taulukon välittömään alapuolelle selkeä yhteenvetorivi tai loppusumma (€) **jokaiselle vertailukaupalle erikseen** koko {days_count} päivän ostoskorista, jotta hintavertailu on helppoa."
                 )
-                with st.spinner("Luodaan optimoitua Pro-ruokalistaa ja hintavertailua..."):
+                with st.spinner("Luodaan optimoitua Pro-ruokalistaa, kaloreja ja hintavertailua..."):
                     try:
                         result_text = call_openai_api(api_key, prompt)
                         st.markdown(result_text)
